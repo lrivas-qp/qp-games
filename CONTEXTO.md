@@ -60,7 +60,7 @@ y publicar:
 - Host es árbitro de la fase de validación (avanza categorías, calcula scores)
 - Si host se desconecta, el jugador con `joinedAt` más temprano hereda el rol
 
-## Historial de bugs corregidos (en esta sesión)
+## Historial de bugs corregidos
 1. Clase CSS `letter-toggle` → `btn-letter-toggle` (app.js líneas 477, 491, 512)
 2. Clase CSS `vote-buttons` → `answer-vote-buttons` (app.js línea 902)
 3. 14 clases JS sin definición CSS → agregadas a style.css
@@ -70,9 +70,13 @@ y publicar:
 7. Countdown interval sin registrar en `local` → no se limpiaba al cambiar fase
 8. `processValidationCategory` usaba snapshot stale en vez de `local.currentRoom`
 9. **SyntaxError crítico**: regex `/[.#$[]/]/g` → `/[.#$[\]/]/g` en variable `sc` (línea 1057) — este era el bug que impedía cargar el juego
+10. `.hidden { display: none !important; }` → sin `!important` — el `!important` bloqueaba `style.display` del JS, impidiendo ver la config del host y el botón "Iniciar Juego"
+11. Favicon añadido (SVG inline en `<link rel="icon">`) para eliminar error 404 en consola
 
 ## Herramientas disponibles
 - **MCP Playwright**: instalado como `@playwright/mcp`, configurado en `C:\Users\lrivas\.claude\.mcp.json`. Activo en nuevas sesiones. Usar para probar el juego en navegador real.
+- **Chrome instalado**: `C:\Program Files\Google\Chrome\Application\chrome.exe` — usar como `executablePath` en Playwright en lugar de descargar Chromium separado.
+- **Scripts de test**: `test-playwright.cjs` y `test-playwright-invite.cjs` en la raíz del repo. Require el paquete playwright desde `C:\Users\lrivas\AppData\Roaming\npm\node_modules\@playwright\mcp\node_modules\playwright`.
 - **gh CLI**: instalado (v2.92.0). Autenticado con cuenta `lrivas-qp`.
 - **git**: disponible, remote configurado hacia `lrivas-qp/stop-game`
 
@@ -87,8 +91,13 @@ $env:PATH = [System.Environment]::GetEnvironmentVariable('PATH','Machine') + ';'
 gh api repos/lrivas-qp/stop-game/pages | ConvertFrom-Json | Select status, html_url
 ```
 
-## TODO — Lo que falta probar y corregir
-- [ ] Verificar que "Crear sala nueva" funciona (SyntaxError ya corregido, pendiente confirmar)
+## Features implementadas
+- ✅ Enlace de invitación: `?room=XXXX-0000` → prellena código, auto-join si hay nombre en localStorage
+- ✅ Persistencia de nombre: se guarda en `localStorage` al crear/unirse, se prellena en sesiones futuras
+- ✅ Botón "Compartir enlace" en lobby que copia la URL completa con `?room=`
+
+## TODO — Lo que falta probar
+- [x] Verificar que "Crear sala nueva" funciona → ✅ confirmado con Playwright
 - [ ] Verificar que "Unirse a sala" con código funciona para otros jugadores
 - [ ] Probar flujo completo: lobby → countdown → playing → STOP → validación → scores
 - [ ] Verificar timer sincronizado entre múltiples tabs/dispositivos
