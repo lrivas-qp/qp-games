@@ -54,12 +54,12 @@ function showScreen(screenId) {
 
 function showLoading(show) {
   const overlay = document.getElementById('loading-overlay');
-  if (overlay) overlay.style.display = show ? 'flex' : 'none';
+  if (overlay) overlay.classList.toggle('hidden', !show);
 }
 
 function showHomeError(msg) {
   const el = document.getElementById('home-error');
-  if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
+  if (el) { el.textContent = msg; el.classList.toggle('hidden', !msg); }
 }
 
 function showInviteHint(code) {
@@ -71,8 +71,8 @@ function generateRoomCode() {
   const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
   let code = '';
   for (let i = 0; i < 4; i++) code += letters[Math.floor(Math.random() * letters.length)];
-  const digits = Math.floor(1000 + Math.random() * 9000);
-  return `${code}-${digits}`;
+  const digits = String(Math.floor(10 + Math.random() * 90));
+  return code + digits;
 }
 
 function getOrCreatePlayerId() {
@@ -125,7 +125,10 @@ async function createRoom() {
   const roomCode = generateRoomCode();
   local.roomCode = roomCode;
 
+  const now = Date.now();
   const roomData = {
+    createdAt: now,
+    expiresAt: now + 4 * 60 * 60 * 1000,
     config: {
       categories: DEFAULT_CATEGORIES,
       availableLetters: DEFAULT_LETTERS,
@@ -201,6 +204,11 @@ async function joinRoom() {
     }
 
     const room = snapshot.val();
+    if (room.expiresAt && Date.now() > room.expiresAt) {
+      showLoading(false);
+      showHomeError('Esta sala ha expirado');
+      return;
+    }
     const phase = room.state && room.state.phase;
     if (phase && phase !== 'lobby') {
       showLoading(false);
@@ -266,6 +274,15 @@ function attachRoomListener(roomCode) {
 // MANEJO CENTRAL DE ACTUALIZACIONES DE SALA
 // ─────────────────────────────────────────────
 function handleRoomUpdate(room) {
+  if (room.expiresAt && Date.now() > room.expiresAt) {
+    clearTimers();
+    detachRoomListener();
+    if (local.isHost) remove(ref(db, `rooms/${local.roomCode}`)).catch(console.error);
+    showScreen('screen-home');
+    showHomeError('La sala expiró (límite de 4 horas)');
+    return;
+  }
+
   const phase = room.state && room.state.phase ? room.state.phase : 'lobby';
 
   // Detectar si el host actual se desconectó y reasignar host
@@ -392,19 +409,21 @@ function renderLobby(room) {
 
   // Config section visible solo para host
   const configSection = el('config-section');
-  if (configSection) {
-    configSection.style.display = local.isHost ? 'block' : 'none';
-  }
+  if (configSection) configSection.classList.toggle('hidden', !local.isHost);
 
   // Renderizar configuración
   renderLobbyConfig(room);
 
   // Botón iniciar solo para host
   const btnStart = el('btn-start-game');
+  const startHint = el('lobby-start-hint');
+  const needMorePlayers = connectedPlayers.length < 2;
   if (btnStart) {
-    btnStart.style.display = local.isHost ? 'block' : 'none';
-    btnStart.disabled = connectedPlayers.length < 2;
-    btnStart.title = connectedPlayers.length < 2 ? 'Se necesitan al menos 2 jugadores' : '';
+    btnStart.classList.toggle('hidden', !local.isHost);
+    btnStart.disabled = needMorePlayers;
+  }
+  if (startHint) {
+    startHint.classList.toggle('hidden', !local.isHost || !needMorePlayers);
   }
 
   // Mensaje de estado para no-host
@@ -1188,7 +1207,7 @@ function renderRoundScores(room) {
   const btnNext = el('btn-next-round');
   const waitingMsg = el('round-scores-waiting');
 
-  if (btnNext) btnNext.style.display = local.isHost ? 'block' : 'none';
+  if (btnNext) btnNext.classList.toggle('hidden', !local.isHost);
   if (waitingMsg) waitingMsg.style.display = local.isHost ? 'none' : 'block';
 
   if (btnNext && !btnNext._listenerAdded) {
