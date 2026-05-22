@@ -732,7 +732,7 @@ function renderPlaying(room) {
 
   // Notice de stop
   const notice = el('game-stopped-notice');
-  if (notice) notice.style.display = 'none';
+  if (notice) notice.classList.add('hidden');
 }
 
 function renderPlayingPartial(room) {
@@ -743,7 +743,7 @@ function renderPlayingPartial(room) {
     const notice = el('game-stopped-notice');
     if (notice) {
       notice.textContent = `¡${escapeHtml(state.stoppedByName || 'Alguien')} presionó STOP!`;
-      notice.style.display = 'block';
+      notice.classList.remove('hidden');
     }
     // Deshabilitar inputs
     document.querySelectorAll('.category-input').forEach(i => i.disabled = true);

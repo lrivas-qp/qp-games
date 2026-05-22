@@ -125,7 +125,7 @@ body {
 /* =====================================================
    UTILITY CLASSES
    ===================================================== */
-.hidden { display: none; }
+.hidden { display: none !important; }
 
 .section-title {
   font-size: 0.75rem;
