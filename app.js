@@ -1054,7 +1054,7 @@ async function processValidationCategory(room) {
     const processedCats = categories.slice(0, catIndex); // catIndex aún no incluye la actual
     // La actual está en `updates`
     processedCats.forEach(cat => {
-      const sc = cat.replace(/[.#$[]/]/g, '_');
+      const sc = cat.replace(/[.#$[\]/]/g, '_');
       const catValidation = roundValidation[sc] || {};
       Object.keys(players).forEach(pid => {
         const pv = catValidation[pid] || {};
