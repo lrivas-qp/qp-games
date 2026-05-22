@@ -1474,3 +1474,18 @@ body {
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* =====================================================
+   INVITE LINK FEATURE
+   ===================================================== */
+.invite-hint-msg {
+  color: var(--color-green);
+  font-size: 0.85rem;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 0.8rem;
+}

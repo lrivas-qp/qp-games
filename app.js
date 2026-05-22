@@ -62,6 +62,11 @@ function showHomeError(msg) {
   if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
 }
 
+function showInviteHint(code) {
+  const el_hint = el('home-invite-hint');
+  if (el_hint) { el_hint.textContent = `Uniéndote a sala ${code}`; el_hint.style.display = 'block'; }
+}
+
 function generateRoomCode() {
   const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
   let code = '';
@@ -108,6 +113,7 @@ async function createRoom() {
   const nameInput = el('input-player-name');
   const name = nameInput ? nameInput.value.trim() : '';
   if (!name) { showHomeError('Ingresa tu nombre'); return; }
+  localStorage.setItem('stop_player_name', name);
 
   showLoading(true);
   showHomeError('');
@@ -175,6 +181,7 @@ async function joinRoom() {
 
   if (!name) { showHomeError('Ingresa tu nombre'); return; }
   if (!code) { showHomeError('Ingresa el código de la sala'); return; }
+  localStorage.setItem('stop_player_name', name);
 
   showLoading(true);
   showHomeError('');
@@ -549,6 +556,26 @@ function setupCopyBtn() {
       document.body.removeChild(input);
     });
   });
+
+  const btnShareLink = el('lobby-share-link-btn');
+  if (btnShareLink) {
+    btnShareLink.addEventListener('click', () => {
+      const url = `${window.location.origin}${window.location.pathname}?room=${local.roomCode}`;
+      navigator.clipboard.writeText(url).then(() => {
+        btnShareLink.textContent = '¡Enlace copiado!';
+        setTimeout(() => { btnShareLink.textContent = 'Compartir enlace'; }, 2000);
+      }).catch(() => {
+        const input = document.createElement('input');
+        input.value = url;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        btnShareLink.textContent = '¡Enlace copiado!';
+        setTimeout(() => { btnShareLink.textContent = 'Compartir enlace'; }, 2000);
+      });
+    });
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -1393,6 +1420,34 @@ function initEventListeners() {
   if (btnLeave) btnLeave.addEventListener('click', leaveLobby);
 
   setupCopyBtn();
+
+  // Pre-fill name from localStorage
+  const savedName = localStorage.getItem('stop_player_name');
+  if (savedName) {
+    const nameInput = el('input-player-name');
+    if (nameInput && !nameInput.value) nameInput.value = savedName;
+  }
+
+  // Handle invite URL (?room=XXXX-0000)
+  const params = new URLSearchParams(window.location.search);
+  const inviteCode = params.get('room');
+  if (inviteCode) {
+    const codeInput = el('input-room-code');
+    if (codeInput) codeInput.value = inviteCode.toUpperCase();
+    if (savedName) {
+      const nameInput = el('input-player-name');
+      if (nameInput) nameInput.value = savedName;
+      // Auto-join after brief delay to let Firebase init
+      setTimeout(() => joinRoom(), 300);
+    } else {
+      const nameInput = el('input-player-name');
+      if (nameInput) {
+        nameInput.focus();
+        nameInput.placeholder = 'Ingresa tu nombre para unirte';
+      }
+      showInviteHint(inviteCode.toUpperCase());
+    }
+  }
 }
 
 // ─────────────────────────────────────────────
