@@ -296,8 +296,8 @@ function handleRoomUpdate(room) {
       if (local.lastRenderedPhase !== 'lobby') showScreen('screen-lobby');
       break;
     case 'countdown':
-      clearTimers();
       if (local.lastRenderedPhase !== 'countdown') {
+        clearTimers();
         showScreen('screen-countdown');
         renderCountdown(room);
       }
@@ -312,17 +312,19 @@ function handleRoomUpdate(room) {
         renderPlayingPartial(room);
       }
       break;
-    case 'validating':
-      if (local.lastRenderedPhase !== 'validating' ||
-          room.state.validationCategoryIndex !== local.lastValidationCategoryIndex) {
+    case 'validating': {
+      const catChanged = local.lastRenderedPhase !== 'validating' ||
+                         room.state.validationCategoryIndex !== local.lastValidationCategoryIndex;
+      if (catChanged) {
         clearTimers();
         showScreen('screen-validating');
-        renderValidating(room);
         local.lastValidationCategoryIndex = room.state.validationCategoryIndex;
         const valDuration = room.state.validationDuration || room.config.validationDuration || 10;
         startValidationTimer(room.state.validationStartedAt, valDuration, room);
       }
+      renderValidating(room); // siempre re-renderizar para reflejar cambios de votos
       break;
+    }
     case 'round-scores':
       clearTimers();
       if (local.lastRenderedPhase !== 'round-scores') {
@@ -1056,7 +1058,8 @@ async function processValidationCategory(room) {
   const roundNum = state.currentRound || 1;
   const players = room.players || {};
   const totalPlayers = Object.keys(players).length;
-  const threshold = Math.ceil(totalPlayers / 2);
+  // Inválido si >= mitad vota en contra; válido requiere < mitad de votos en contra
+  const invalidThreshold = totalPlayers / 2;
 
   const validation = (room.rounds && room.rounds[roundNum] && room.rounds[roundNum].validation && room.rounds[roundNum].validation[safeCat]) || {};
 
@@ -1067,7 +1070,7 @@ async function processValidationCategory(room) {
   Object.entries(players).forEach(([pid]) => {
     const vData = validation[pid] || { answer: '', invalidVotes: {} };
     const invalidCount = vData.invalidVotes ? Object.keys(vData.invalidVotes).length : 0;
-    const isValid = invalidCount < threshold && (vData.answer || '').trim() !== '';
+    const isValid = invalidCount < invalidThreshold && (vData.answer || '').trim() !== '';
     updates[`rounds/${roundNum}/validation/${safeCat}/${pid}/finalValid`] = isValid;
     if (isValid) {
       validAnswers[pid] = (vData.answer || '').toLowerCase().trim();

@@ -1081,8 +1081,8 @@ body {
 .btn-vote-invalid:disabled { opacity: 0.25; cursor: not-allowed; }
 
 .btn-vote-valid {
-  border-color: rgba(0, 200, 150, 0.3);
-  color: rgba(0, 200, 150, 0.4);
+  border-color: rgba(100, 100, 100, 0.35);
+  color: rgba(150, 150, 150, 0.6);
 }
 .btn-vote-valid:hover:not(:disabled) {
   border-color: var(--color-green);
@@ -1093,6 +1093,7 @@ body {
   border-color: var(--color-green);
   background: rgba(0, 200, 150, 0.22);
   color: var(--color-green);
+  font-weight: 700;
 }
 
 .btn-vote-invalid {
@@ -1106,8 +1107,9 @@ body {
 }
 .btn-vote-invalid.active {
   border-color: var(--color-red);
-  background: rgba(255, 65, 54, 0.22);
-  color: var(--color-red);
+  background: rgba(255, 65, 54, 0.5);
+  color: #fff;
+  font-weight: 700;
 }
 
 /* =====================================================
