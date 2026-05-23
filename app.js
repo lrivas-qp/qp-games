@@ -33,7 +33,8 @@ const local = {
   currentRoom: null,
   answerDebounceTimers: {},
   lastRenderedPhase: null,
-  lastValidationCategoryIndex: -1
+  lastValidationCategoryIndex: -1,
+  stopTransitionScheduled: false
 };
 
 // ─────────────────────────────────────────────
@@ -318,7 +319,8 @@ function handleRoomUpdate(room) {
         showScreen('screen-validating');
         renderValidating(room);
         local.lastValidationCategoryIndex = room.state.validationCategoryIndex;
-        startValidationTimer(room.state.validationStartedAt, room.config.validationDuration, room);
+        const valDuration = room.state.validationDuration || room.config.validationDuration || 10;
+        startValidationTimer(room.state.validationStartedAt, valDuration, room);
       }
       break;
     case 'round-scores':
@@ -685,9 +687,10 @@ function renderPlaying(room) {
   // Contador de jugadores conectados
   updatePlayingPlayerCount(room);
 
-  // Crear inputs de categorías
+  // Crear inputs de categorías (siempre limpiar para rondas nuevas)
   const container = el('game-categories-container');
-  if (container && container.children.length === 0) {
+  if (container) {
+    container.innerHTML = '';
     categories.forEach(cat => {
       const row = document.createElement('div');
       row.className = 'category-row';
@@ -749,6 +752,19 @@ function renderPlayingPartial(room) {
     document.querySelectorAll('.category-input').forEach(i => i.disabled = true);
     const btnStop = el('btn-stop');
     if (btnStop) btnStop.disabled = true;
+
+    // Host: detener timer y transicionar en 2 segundos
+    if (local.isHost && !local.stopTransitionScheduled) {
+      local.stopTransitionScheduled = true;
+      if (local.roundTimerInterval) {
+        clearInterval(local.roundTimerInterval);
+        local.roundTimerInterval = null;
+      }
+      setTimeout(() => {
+        local.stopTransitionScheduled = false;
+        transitionToValidating();
+      }, 2000);
+    }
   }
 }
 
@@ -807,10 +823,7 @@ async function pressStop() {
       saveAnswer(cat, input.value);
     });
 
-    // Después de un breve delay, transicionar a validating si soy host
-    if (local.isHost) {
-      setTimeout(() => transitionToValidating(), 1500);
-    }
+    // La transición a validating la maneja renderPlayingPartial al detectar stoppedBy
   } catch (err) {
     console.error('Error en STOP transaction:', err);
   }
@@ -848,7 +861,7 @@ function startRoundTimer(roundStartedAt, roundDuration, room) {
             stoppedBy: 'TIMER',
             stoppedByName: 'El tiempo'
           });
-          setTimeout(() => transitionToValidating(), 500);
+          // renderPlayingPartial detectará stoppedBy y programará la transición en 2s
         }
       }
     }
@@ -885,9 +898,13 @@ async function transitionToValidating() {
     });
   });
 
+  const connectedCount = Object.values(players).filter(p => p.connected).length;
+  const validationDuration = Math.max(10, connectedCount * 2);
+
   updates['state/phase'] = 'validating';
   updates['state/validationCategoryIndex'] = 0;
   updates['state/validationStartedAt'] = Date.now();
+  updates['state/validationDuration'] = validationDuration;
 
   try {
     await update(ref(db, `rooms/${local.roomCode}`), updates);

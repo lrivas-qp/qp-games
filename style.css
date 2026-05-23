@@ -874,6 +874,8 @@ body {
   border-radius: var(--radius-md);
   padding: 10px 14px;
   transition: border-color 0.2s;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .category-row:has(.category-input:focus) {
@@ -903,10 +905,12 @@ body {
   border-radius: 0;
   color: var(--color-text);
   font-family: var(--font-main);
-  font-size: 1rem;
+  font-size: 16px; /* 16px prevents iOS Safari auto-zoom on focus */
   font-weight: 600;
   padding: 4px 6px;
   flex: 1;
+  min-width: 0;
+  max-width: 100%;
   outline: none;
   transition: border-color 0.2s;
 }
