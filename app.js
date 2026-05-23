@@ -941,33 +941,27 @@ function renderValidating(room) {
 
   Object.entries(players)
     .sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0))
+    .filter(([pid]) => pid !== local.playerId)
     .forEach(([pid, player]) => {
       const vData = validation[pid] || { answer: '', invalidVotes: {}, finalValid: null };
-      const isMe = pid === local.playerId;
       const myVoteInvalid = vData.invalidVotes && vData.invalidVotes[local.playerId];
 
       const card = document.createElement('div');
-      card.className = `answer-card${isMe ? ' my-answer' : ''}`;
+      card.className = 'answer-card';
       card.dataset.playerId = pid;
       card.dataset.category = safeCat;
 
       card.innerHTML = `
-        <span class="answer-player-name">${escapeHtml(player.name)}${isMe ? ' (Tú)' : ''}</span>
+        <span class="answer-player-name">${escapeHtml(player.name)}</span>
         <span class="answer-text">${escapeHtml(vData.answer || '(sin respuesta)')}</span>
         <div class="answer-vote-buttons">
-          <button class="btn-vote-valid${myVoteInvalid ? '' : ' active'}" data-player-id="${pid}">✓ De acuerdo</button>
-          <button class="btn-vote-invalid${myVoteInvalid ? ' active' : ''}" data-player-id="${pid}">✗ No estoy de acuerdo</button>
+          <button class="btn-vote-valid${myVoteInvalid ? '' : ' active'}" data-player-id="${pid}" title="De acuerdo">✓</button>
+          <button class="btn-vote-invalid${myVoteInvalid ? ' active' : ''}" data-player-id="${pid}" title="No estoy de acuerdo">✗</button>
         </div>
       `;
 
-      // No permitir votar sobre la propia respuesta
-      if (!isMe) {
-        card.querySelector('.btn-vote-valid').addEventListener('click', () => voteValid(pid, safeCat, roundNum));
-        card.querySelector('.btn-vote-invalid').addEventListener('click', () => voteInvalid(pid, safeCat, roundNum));
-      } else {
-        card.querySelector('.btn-vote-valid').disabled = true;
-        card.querySelector('.btn-vote-invalid').disabled = true;
-      }
+      card.querySelector('.btn-vote-valid').addEventListener('click', () => voteValid(pid, safeCat, roundNum));
+      card.querySelector('.btn-vote-invalid').addEventListener('click', () => voteInvalid(pid, safeCat, roundNum));
 
       answersContainer.appendChild(card);
     });

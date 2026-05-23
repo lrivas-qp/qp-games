@@ -598,6 +598,11 @@ body {
   gap: 8px;
 }
 
+.category-checkbox-label {
+  min-width: 0;
+  overflow: hidden;
+}
+
 /* Checkbox item — injected by JS */
 .category-check-item {
   display: flex;
@@ -856,6 +861,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  padding-bottom: 100px;
 }
 
 /* Category row — injected by JS */
@@ -1051,38 +1057,53 @@ body {
 
 .btn-vote-valid,
 .btn-vote-invalid {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  border: 1.5px solid;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 2px solid;
   background: transparent;
-  font-size: 1rem;
+  font-size: 1.25rem;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s, transform 0.1s;
-  font-family: var(--font-main);
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  flex-shrink: 0;
 }
 .btn-vote-valid:active,
-.btn-vote-invalid:active { transform: scale(0.9); }
+.btn-vote-invalid:active { transform: scale(0.88); }
+.btn-vote-valid:disabled,
+.btn-vote-invalid:disabled { opacity: 0.25; cursor: not-allowed; }
 
 .btn-vote-valid {
+  border-color: rgba(0, 200, 150, 0.3);
+  color: rgba(0, 200, 150, 0.4);
+}
+.btn-vote-valid:hover:not(:disabled) {
   border-color: var(--color-green);
   color: var(--color-green);
+  background: rgba(0, 200, 150, 0.1);
 }
-.btn-vote-valid:hover,
-.btn-vote-valid.selected {
-  background: rgba(0, 200, 150, 0.15);
+.btn-vote-valid.active {
+  border-color: var(--color-green);
+  background: rgba(0, 200, 150, 0.22);
+  color: var(--color-green);
 }
 
 .btn-vote-invalid {
+  border-color: rgba(255, 65, 54, 0.3);
+  color: rgba(255, 65, 54, 0.4);
+}
+.btn-vote-invalid:hover:not(:disabled) {
   border-color: var(--color-red);
   color: var(--color-red);
+  background: rgba(255, 65, 54, 0.1);
 }
-.btn-vote-invalid:hover,
-.btn-vote-invalid.selected {
-  background: rgba(255, 65, 54, 0.15);
+.btn-vote-invalid.active {
+  border-color: var(--color-red);
+  background: rgba(255, 65, 54, 0.22);
+  color: var(--color-red);
 }
 
 /* =====================================================
@@ -1429,7 +1450,7 @@ body {
   }
 
   .categories-checklist {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 
   .playing-footer {
