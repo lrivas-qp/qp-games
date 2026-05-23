@@ -218,9 +218,9 @@ async function joinRoom() {
 
     const players = room.players || {};
     const playerCount = Object.keys(players).length;
-    if (playerCount >= 14) {
+    if (playerCount >= 20) {
       showLoading(false);
-      showHomeError('La sala está llena (máximo 14 jugadores)');
+      showHomeError('La sala está llena (máximo 20 jugadores)');
       return;
     }
 
@@ -388,7 +388,7 @@ function renderLobby(room) {
 
   // Contador de jugadores
   const countEl = el('lobby-player-count');
-  if (countEl) countEl.textContent = `${connectedPlayers.length}/14 jugadores`;
+  if (countEl) countEl.textContent = `${connectedPlayers.length}/20 jugadores`;
 
   // Lista de jugadores
   const listEl = el('lobby-players-list');
@@ -1423,6 +1423,9 @@ function initEventListeners() {
   if (codeInput) {
     codeInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') joinRoom();
+    });
+    codeInput.addEventListener('input', () => {
+      codeInput.value = codeInput.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 6);
     });
   }
 
