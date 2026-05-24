@@ -568,9 +568,13 @@ function endGame() {
   state.isRunning = false;
   if (state.animFrameId) cancelAnimationFrame(state.animFrameId);
 
-  // Mostrar resultados
   finalScore.textContent = state.score;
   finalLevel.textContent = state.level;
+
+  // Prellenar nombre desde localStorage
+  const savedName = localStorage.getItem('typing-maniac-name');
+  if (savedName) playerNameInput.value = savedName;
+
   gameoverScreen.classList.add('active');
   playerNameInput.focus();
 }
@@ -621,6 +625,7 @@ document.getElementById('btn-submit-score').addEventListener('click', async () =
 
   try {
     await saveScore(name, state.score, state.level);
+    localStorage.setItem('typing-maniac-name', name);
     state.scoreSubmitted = true;
     btn.textContent = '✅ Guardado!';
   } catch (err) {
@@ -628,6 +633,12 @@ document.getElementById('btn-submit-score').addEventListener('click', async () =
     btn.textContent = '❌ Error - Reintenta';
     btn.disabled = false;
   }
+});
+
+document.getElementById('btn-back-to-menu').addEventListener('click', () => {
+  gameoverScreen.classList.remove('active');
+  startScreen.classList.add('active');
+  loadLeaderboard();
 });
 
 // ── Leaderboard ──────────────────────────────────────────────────────────
@@ -665,12 +676,17 @@ function escapeHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── Inicio: cargar leaderboard ───────────────────────────────────────────
+// ── Leaderboard: carga y refresco ────────────────────────────────────────
 
-getTopTen((rankings, err) => {
-  if (err) {
-    leaderboardList.innerHTML = '<li class="lb-loading">Sin conexión Firebase</li>';
-    return;
-  }
-  renderLeaderboard(rankings);
-});
+function loadLeaderboard() {
+  leaderboardList.innerHTML = '<li class="lb-loading">Cargando ranking...</li>';
+  getTopTen((rankings, err) => {
+    if (err) {
+      leaderboardList.innerHTML = '<li class="lb-loading">Sin conexión Firebase</li>';
+      return;
+    }
+    renderLeaderboard(rankings);
+  });
+}
+
+loadLeaderboard();
