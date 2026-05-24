@@ -51,12 +51,17 @@ const RANKINGS_PATH = 'typing-maniac/rankings';
  */
 export async function saveScore(playerName, score, level) {
   const rankingsRef = ref(db, RANKINGS_PATH);
-  await push(rankingsRef, {
+  const savePromise = push(rankingsRef, {
     nombreJugador:  String(playerName).trim().substring(0, 30) || 'Anónimo',
     puntuacion:     Number(score)  || 0,
     nivelAlcanzado: Number(level)  || 1,
     timestamp:      Date.now()
   });
+  // Timeout de 5s: con credenciales placeholder Firebase no resuelve ni rechaza nunca
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Firebase timeout')), 5000)
+  );
+  await Promise.race([savePromise, timeout]);
 }
 
 /**

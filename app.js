@@ -391,8 +391,8 @@ function showLevelUpScreen() {
   state.isRunning = false;
   if (state.animFrameId) cancelAnimationFrame(state.animFrameId);
 
-  // Limpiar todas las palabras del área antes de mostrar el overlay
-  for (const w of state.words) { if (w.el.parentNode) w.el.remove(); }
+  // Nuke todas las word-cards del DOM (captura también las que están en animación .destroying)
+  gameArea.querySelectorAll('.word-card').forEach(el => el.remove());
   state.words = [];
   state.matchedWordIndex = -1;
   clearBuffer();
