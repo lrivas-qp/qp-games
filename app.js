@@ -556,7 +556,10 @@ function initGame() {
   document.getElementById('levelup-overlay').classList.remove('active');
   spellNotice.classList.add('hidden');
 
-  // Limpiar inputs del game over
+  // Resetear botón de guardar y nombre
+  const submitBtn = document.getElementById('btn-submit-score');
+  submitBtn.textContent = '💾 GUARDAR PUNTUACIÓN';
+  submitBtn.disabled = false;
   playerNameInput.value = '';
 
   // Iniciar loop
