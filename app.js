@@ -451,7 +451,12 @@ function applyFire() {
     setTimeout(() => { if (w.el.parentNode) w.el.remove(); }, 320);
   }
   state.words = state.words.filter(w => !toDestroy.includes(w));
+  // Reiniciar reloj de spawn para evitar avalancha de palabras tras la limpieza
+  state.lastSpawnTime = state.lastFrameTime + 1500;
   addScore(totalPts);
+  // Actualizar texto de la notificación con los puntos ganados
+  const notice = document.getElementById('spell-notice');
+  if (notice) notice.textContent = `🔥 ¡FUEGO ARCANO! +${totalPts} pts`;
   updateHUD();
 }
 
