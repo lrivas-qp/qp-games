@@ -49,6 +49,8 @@ const state = {
   lastFrameTime: 0,
   animFrameId: null,
   nextLevelScore: LEVEL_UP_SCORE,
+  prevLevelScore: 0,
+  levelUpTimer: null,
   scoreSubmitted: false
 };
 
@@ -66,7 +68,6 @@ const finalScore    = document.getElementById('final-score');
 const finalLevel    = document.getElementById('final-level');
 const playerNameInput = document.getElementById('player-name');
 const leaderboardList = document.getElementById('leaderboard-list');
-const levelNotice   = document.getElementById('level-up-notice');
 const spellNotice   = document.getElementById('spell-notice');
 
 // ── Utilidades ───────────────────────────────────────────────────────────
@@ -321,21 +322,43 @@ function addScore(pts) {
 function checkLevelUp() {
   if (state.score >= state.nextLevelScore) {
     state.level++;
-    state.nextLevelScore += LEVEL_UP_SCORE + (state.level - 1) * 200;
-    showLevelUpNotice();
+    state.prevLevelScore = state.nextLevelScore;
+    state.nextLevelScore = state.prevLevelScore + LEVEL_UP_SCORE + (state.level - 1) * 200;
+    showLevelUpScreen();
     updateHUD();
   }
 }
 
-function showLevelUpNotice() {
-  levelNotice.textContent = `LEVEL ${state.level}!`;
-  levelNotice.classList.remove('hidden');
-  // Forzar re-trigger de la animación
-  levelNotice.style.animation = 'none';
-  requestAnimationFrame(() => {
-    levelNotice.style.animation = '';
-    setTimeout(() => levelNotice.classList.add('hidden'), 1500);
-  });
+function showLevelUpScreen() {
+  state.isRunning = false;
+  if (state.animFrameId) cancelAnimationFrame(state.animFrameId);
+
+  const overlay = document.getElementById('levelup-overlay');
+  const levelEl = document.getElementById('levelup-level-num');
+  const countEl = document.getElementById('levelup-countdown');
+
+  levelEl.textContent = state.level;
+  countEl.textContent = '3';
+
+  // Re-trigger la animación del número
+  levelEl.style.animation = 'none';
+  requestAnimationFrame(() => { levelEl.style.animation = ''; });
+
+  overlay.classList.add('active');
+
+  let count = 3;
+  state.levelUpTimer = setInterval(() => {
+    count--;
+    if (count > 0) {
+      countEl.textContent = String(count);
+    } else {
+      clearInterval(state.levelUpTimer);
+      state.levelUpTimer = null;
+      overlay.classList.remove('active');
+      state.isRunning = true;
+      state.animFrameId = requestAnimationFrame(gameLoop);
+    }
+  }, 1000);
 }
 
 // ── HUD ──────────────────────────────────────────────────────────────────
@@ -350,6 +373,11 @@ function updateHUD() {
   // Spell buttons
   document.getElementById('spell-fire').classList.toggle('used', state.spells.fire <= 0);
   document.getElementById('spell-ice').classList.toggle('used', state.spells.ice <= 0);
+
+  // Barra de progreso
+  const range = state.nextLevelScore - state.prevLevelScore;
+  const progress = Math.min(100, Math.max(0, (state.score - state.prevLevelScore) / range * 100));
+  document.getElementById('level-progress-fill').style.width = `${progress}%`;
 }
 
 // ── Hechizos ────────────────────────────────────────────────────────────
@@ -435,9 +463,10 @@ function gameLoop(timestamp) {
 
 /** Inicializa o reinicia el juego desde cero */
 function initGame() {
-  // Detener loop anterior
+  // Detener loop anterior y timers pendientes
   if (state.animFrameId) cancelAnimationFrame(state.animFrameId);
   if (state.freezeTimer) clearTimeout(state.freezeTimer);
+  if (state.levelUpTimer) { clearInterval(state.levelUpTimer); state.levelUpTimer = null; }
 
   // Limpiar palabras del DOM
   for (const w of state.words) { if (w.el.parentNode) w.el.remove(); }
@@ -456,6 +485,8 @@ function initGame() {
   state.lastSpawnTime = 0;
   state.lastFrameTime = 0;
   state.nextLevelScore = LEVEL_UP_SCORE;
+  state.prevLevelScore = 0;
+  state.levelUpTimer = null;
   state.scoreSubmitted = false;
 
   updateHUD();
@@ -464,7 +495,7 @@ function initGame() {
   // Ocultar overlays
   startScreen.classList.remove('active');
   gameoverScreen.classList.remove('active');
-  levelNotice.classList.add('hidden');
+  document.getElementById('levelup-overlay').classList.remove('active');
   spellNotice.classList.add('hidden');
 
   // Limpiar inputs del game over

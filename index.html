@@ -34,6 +34,9 @@
     <div id="typed-buffer-display"></div>
   </div>
 
+  <!-- Barra de progreso de nivel -->
+  <div id="level-progress-bar"><div id="level-progress-fill"></div></div>
+
   <!-- Panel de poderes -->
   <div id="spells-panel">
     <div class="spell-btn" id="spell-fire" title="[1] Fuego">
@@ -88,8 +91,16 @@
     </div>
   </div>
 
-  <!-- Notificación de nivel -->
-  <div id="level-up-notice" class="level-notice hidden">LEVEL UP!</div>
+  <!-- Overlay de subida de nivel -->
+  <div id="levelup-overlay" class="overlay">
+    <div class="levelup-card">
+      <div class="levelup-badge">¡NIVEL SUPERADO!</div>
+      <div class="levelup-num" id="levelup-level-num">2</div>
+      <div class="levelup-sublabel">INICIANDO EN</div>
+      <div class="levelup-countdown" id="levelup-countdown">3</div>
+    </div>
+  </div>
+
   <!-- Notificación de hechizo -->
   <div id="spell-notice" class="spell-notice hidden"></div>
 
