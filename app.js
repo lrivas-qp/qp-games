@@ -1,27 +1,40 @@
 // ── Imports Firebase (firebase-config.js escrito por otro agente) ────────
 import { saveScore, getTopTen } from './firebase-config.js';
 
-// ── Lista de palabras (100+, ordenadas de cortas a largas) ───────────────
+// ── Lista de palabras en español (sin tildes para facilitar tipeo) ────────
 const WORD_LIST = [
   // 3 letras
-  'cat','dog','run','fly','hit','bad','big','old','new','red',
-  'hot','sky','sun','sea','map','cup','top','web','win','far',
+  'sol','mar','paz','luz','rey','pan','sal','rio','mil','fin',
+  'ser','ver','dar','gas','van','ley','don','son','hay','mal',
   // 4 letras
-  'jump','fire','wind','rain','cold','dark','fast','slow','bold','wave',
-  'lock','ship','drop','star','ring','frog','drum','lamp','book','flow',
+  'amor','vida','casa','luna','hora','cara','aire','beso','gato','pato',
+  'roca','nube','flor','mesa','lobo','hoja','boca','mano','vino','lago',
+  'rosa','rana','toro','nido','piel','copa','capa','dama','dedo','hilo',
+  'mapa','ropa','saco','vaso','foto','pico','foca','vale','bala','pozo',
   // 5 letras
-  'storm','flame','frost','sword','magic','ghost','chaos','power','light','night',
-  'cloud','blade','water','earth','stone','snake','blast','crisp','prize','trace',
+  'cielo','playa','campo','verde','amigo','mundo','brisa','calle','dulce','norte',
+  'pluma','reina','rumbo','salto','tigre','turno','viaje','bruma','cobra','limon',
+  'papel','perro','prado','vapor','villa','zorro','piano','circo','claro','coral',
+  'corte','curva','fibra','forma','fruta','globo','guapo','gusto','hueso','humor',
+  'juego','largo','lista','lucha','madre','manta','marca','miedo','mosca','tabla',
+  'texto','trigo',
   // 6 letras
-  'battle','castle','dragon','shadow','forest','planet','rocket','bridge','frozen','silver',
-  'flying','strong','wonder','mighty','clever','shiver','broken','candle','mirror','charge',
+  'bosque','ciudad','fuerte','gloria','guerra','humano','juntos','ladron','marina','modelo',
+  'olivar','paloma','pastor','pueblo','rancho','rapido','ritual','sangre','terror','tiempo',
+  'tirano','torres','vecino','violin','visita','zapato','bronce','camino','centro','cocina',
+  'colina','corona','cuarto','doctor','escoba','escudo','espejo','fuente','garras','granja',
+  'jardin','letras','llaves','mejora','moneda','motivo',
   // 7 letras
-  'thunder','crystal','phantom','warrior','kingdom','freedom','capture','blazing','network','silence',
-  'ancient','balance','chapter','diamond','factory','forward','harvest','journey','lantern','monster',
+  'brillar','captura','cristal','destino','espacio','estudio','familia','gigante','impacto','jornada',
+  'mensaje','milagro','montana','noventa','pantano','platano','pobreza','primero','proceso','sagrado',
+  'sendero','sistema','termino','trabajo','treinta','tributo','triunfo','urgente','ventana','verdura',
+  'villano',
   // 8+ letras
-  'absolute','backbone','carnival','champion','database','emerging','fountain','guardian',
-  'heritage','infinity','keyboard','labyrinth','memorial','navigate','operator','paradise',
-  'quantity','remember','skeleton','strategy','treasure','ultimate','velocity','wireless'
+  'absoluto','academia','acuarela','aventura','ballesta','capitulo','catalogo','contrato',
+  'corredor','cubierta','descuido','edificio','elemento','fantasia','generoso','gobierno',
+  'grandeza','imaginar','interior','mariscal','negociar','novedoso','objetivo','operador',
+  'paradoja','posicion','precioso','receptor','relacion','renovado','respaldo','sencillo',
+  'sinfonia','sociedad','solucion','sorpresa','sustento','tribunal','universo','variable','voluntad'
 ];
 
 // ── Constantes del juego ─────────────────────────────────────────────────
@@ -37,11 +50,11 @@ const LIVES_START = 3;
 
 // ── Power-ups (palabras especiales de colores) ────────────────────────────
 const POWERUP_TYPES = {
-  fire:  { words: ['fire','burn','hot'],   color: '#f97316', label: '🔥 ¡FUEGO ARCANO!',    effect: () => applyFire()  },
-  ice:   { words: ['ice','cold','snow'],   color: '#38bdf8', label: '❄️ ¡TIEMPO CONGELADO!', effect: () => applyIce()   },
-  slow:  { words: ['slow','halt','wait'],  color: '#fbbf24', label: '⏳ ¡CÁMARA LENTA!',     effect: () => applySlow()  },
-  heal:  { words: ['heal','life','save'],  color: '#4ade80', label: '💚 ¡VIDA RECUPERADA!',  effect: () => applyHeal()  },
-  bonus: { words: ['gold','star','coin'],  color: '#e879f9', label: '⭐ ¡PUNTOS EXTRA!',     effect: () => applyBonus() },
+  fire:  { words: ['fuego','brasa','llama'],  color: '#f97316', label: '🔥 ¡FUEGO ARCANO!',    effect: () => applyFire()  },
+  ice:   { words: ['hielo','nieve','polar'],  color: '#38bdf8', label: '❄️ ¡TIEMPO CONGELADO!', effect: () => applyIce()   },
+  slow:  { words: ['pausa','lento','calma'],  color: '#fbbf24', label: '⏳ ¡CÁMARA LENTA!',     effect: () => applySlow()  },
+  heal:  { words: ['salud','curar','sana'],   color: '#4ade80', label: '💚 ¡VIDA RECUPERADA!',  effect: () => applyHeal()  },
+  bonus: { words: ['extra','bono','plus'],    color: '#e879f9', label: '⭐ ¡PUNTOS EXTRA!',     effect: () => applyBonus() },
 };
 
 // ── Estado del juego ─────────────────────────────────────────────────────
