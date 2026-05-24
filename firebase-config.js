@@ -66,30 +66,35 @@ export async function saveScore(playerName, score, level) {
  * @param {Function} callback - (rankings: Array|null, error: Error|null) => void
  */
 export function getTopTen(callback) {
-  const rankingsRef = ref(db, RANKINGS_PATH);
-  // orderByChild + limitToLast devuelve los 10 mayores en orden ascendente
-  const top10Query = query(
-    rankingsRef,
-    orderByChild('puntuacion'),
-    limitToLast(10)
-  );
+  let called = false;
+  function once(rankings, err) {
+    if (called) return;
+    called = true;
+    callback(rankings, err);
+  }
 
-  get(top10Query)
-    .then(snapshot => {
-      if (!snapshot.exists()) {
-        callback([], null);
-        return;
-      }
-      // Convertir el objeto a array y ordenar de MAYOR a MENOR
-      const entries = [];
-      snapshot.forEach(child => {
-        entries.push({ id: child.key, ...child.val() });
+  // Timeout de 4s por si Firebase cuelga con credenciales placeholder
+  const timeout = setTimeout(() => once([], null), 4000);
+
+  try {
+    const rankingsRef = ref(db, RANKINGS_PATH);
+    const top10Query = query(rankingsRef, orderByChild('puntuacion'), limitToLast(10));
+    get(top10Query)
+      .then(snapshot => {
+        clearTimeout(timeout);
+        if (!snapshot.exists()) { once([], null); return; }
+        const entries = [];
+        snapshot.forEach(child => entries.push({ id: child.key, ...child.val() }));
+        entries.sort((a, b) => b.puntuacion - a.puntuacion);
+        once(entries, null);
+      })
+      .catch(err => {
+        clearTimeout(timeout);
+        console.error('[Firebase] Error obteniendo top 10:', err);
+        once(null, err);
       });
-      entries.sort((a, b) => b.puntuacion - a.puntuacion);
-      callback(entries, null);
-    })
-    .catch(err => {
-      console.error('[Firebase] Error obteniendo top 10:', err);
-      callback(null, err);
-    });
+  } catch (err) {
+    clearTimeout(timeout);
+    once(null, err);
+  }
 }

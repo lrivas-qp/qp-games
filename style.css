@@ -85,7 +85,7 @@ body {
   position: fixed;
   top: 60px;
   left: 0; right: 0;
-  bottom: 80px;
+  bottom: 0;
   overflow: hidden;
   background:
     radial-gradient(ellipse at 30% 20%, rgba(120, 40, 200, 0.08) 0%, transparent 60%),
@@ -175,64 +175,16 @@ body {
 /* freeze: tinte azul */
 .word-card.frozen { filter: hue-rotate(120deg) brightness(0.8); }
 
-/* ── Panel de hechizos ───────────────────────── */
-#spells-panel {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  height: 80px;
-  background: var(--hud-bg);
-  border-top: 2px solid var(--card-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-  z-index: 100;
+/* ── Power-up words ──────────────────────────── */
+@keyframes powerupPulse {
+  0%, 100% { box-shadow: 0 0 16px var(--pu-glow), inset 0 0 6px rgba(255,255,255,0.05); }
+  50%       { box-shadow: 0 0 28px var(--pu-glow), inset 0 0 12px rgba(255,255,255,0.1); }
 }
-
-.spell-btn {
-  position: relative;
-  width: 70px;
-  height: 60px;
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  cursor: pointer;
-  border: 2px solid transparent;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-
-#spell-fire {
-  background: linear-gradient(135deg, rgba(249,115,22,0.25), rgba(239,68,68,0.25));
-  border-color: rgba(249,115,22,0.5);
-  box-shadow: 0 0 12px rgba(249,115,22,0.2);
-}
-#spell-ice {
-  background: linear-gradient(135deg, rgba(56,189,248,0.25), rgba(129,140,248,0.25));
-  border-color: rgba(56,189,248,0.5);
-  box-shadow: 0 0 12px rgba(56,189,248,0.2);
-}
-
-#spell-fire:hover { transform: scale(1.08); box-shadow: 0 0 20px rgba(249,115,22,0.5); }
-#spell-ice:hover  { transform: scale(1.08); box-shadow: 0 0 20px rgba(56,189,248,0.5); }
-
-.spell-icon { font-size: 20px; }
-.spell-name { font-size: 6px; color: var(--text-muted); letter-spacing: 1px; }
-.spell-count { font-size: 8px; color: var(--text); }
-.spell-key {
-  position: absolute;
-  top: 3px; right: 5px;
-  font-size: 7px;
-  color: var(--text-muted);
-}
-
-.spell-btn.used { opacity: 0.35; pointer-events: none; }
-.spell-btn.active {
-  transform: scale(1.15);
-  box-shadow: 0 0 30px rgba(255,255,255,0.4);
-}
+.word-card.powerup-fire  { --pu-glow: rgba(249,115,22,0.7); border-color: rgba(249,115,22,0.8); color: #fed7aa; text-shadow: 0 0 10px rgba(249,115,22,0.9); animation: powerupPulse 1.2s ease-in-out infinite; }
+.word-card.powerup-ice   { --pu-glow: rgba(56,189,248,0.7);  border-color: rgba(56,189,248,0.8);  color: #bae6fd; text-shadow: 0 0 10px rgba(56,189,248,0.9);  animation: powerupPulse 1.2s ease-in-out infinite; }
+.word-card.powerup-slow  { --pu-glow: rgba(251,191,36,0.7);  border-color: rgba(251,191,36,0.8);  color: #fef08a; text-shadow: 0 0 10px rgba(251,191,36,0.9);  animation: powerupPulse 1.4s ease-in-out infinite; }
+.word-card.powerup-heal  { --pu-glow: rgba(74,222,128,0.7);  border-color: rgba(74,222,128,0.8);  color: #bbf7d0; text-shadow: 0 0 10px rgba(74,222,128,0.9);  animation: powerupPulse 1.2s ease-in-out infinite; }
+.word-card.powerup-bonus { --pu-glow: rgba(232,121,249,0.7); border-color: rgba(232,121,249,0.8); color: #f5d0fe; text-shadow: 0 0 10px rgba(232,121,249,0.9); animation: powerupPulse 1s ease-in-out infinite; }
 
 /* ── Overlays ────────────────────────────────── */
 .overlay {
@@ -454,17 +406,7 @@ body {
     bottom: auto;
     border-left: 2px solid var(--card-border);
     border-right: 2px solid var(--card-border);
-  }
-
-  #spells-panel {
-    width: var(--game-w);
-    left: 50%;
-    right: auto;
-    bottom: auto;
-    transform: translateX(-50%);
-    top: calc(60px + var(--game-h));
-    border: 2px solid var(--card-border);
-    border-top: none;
+    border-bottom: 2px solid var(--card-border);
     border-radius: 0 0 12px 12px;
   }
 }

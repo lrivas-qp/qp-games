@@ -25,13 +25,24 @@ const WORD_LIST = [
 ];
 
 // ── Constantes del juego ─────────────────────────────────────────────────
-const BASE_SPEED = 0.3;          // px por frame (60fps ≈ 18px/s, muy lento en nivel 1)
-const SPAWN_BASE_MS = 1000;      // ms entre palabras nivel 1 (1 palabra/segundo)
-const POINTS_PER_CHAR = 10;      // puntos base por carácter
-const LEVEL_DURATION_MS = 45000; // 45 segundos por nivel
-const FREEZE_DURATION = 5000;    // ms que dura el hielo
-const MAX_WORDS_ON_SCREEN = 10;  // hasta 10 palabras simultáneas
+const BASE_SPEED = 0.3;
+const SPAWN_BASE_MS = 1000;
+const POINTS_PER_CHAR = 10;
+const WORDS_BASE = 10;          // palabras para completar nivel 1
+const WORDS_PER_LEVEL = 3;      // palabras extra por cada nivel adicional
+const FREEZE_DURATION = 5000;
+const SLOW_DURATION = 6000;     // ms que dura el slow
+const MAX_WORDS_ON_SCREEN = 10;
 const LIVES_START = 3;
+
+// ── Power-ups (palabras especiales de colores) ────────────────────────────
+const POWERUP_TYPES = {
+  fire:  { words: ['fire','burn','hot'],   color: '#f97316', label: '🔥 ¡FUEGO ARCANO!',    effect: () => applyFire()  },
+  ice:   { words: ['ice','cold','snow'],   color: '#38bdf8', label: '❄️ ¡TIEMPO CONGELADO!', effect: () => applyIce()   },
+  slow:  { words: ['slow','halt','wait'],  color: '#fbbf24', label: '⏳ ¡CÁMARA LENTA!',     effect: () => applySlow()  },
+  heal:  { words: ['heal','life','save'],  color: '#4ade80', label: '💚 ¡VIDA RECUPERADA!',  effect: () => applyHeal()  },
+  bonus: { words: ['gold','star','coin'],  color: '#e879f9', label: '⭐ ¡PUNTOS EXTRA!',     effect: () => applyBonus() },
+};
 
 // ── Estado del juego ─────────────────────────────────────────────────────
 const state = {
@@ -40,15 +51,16 @@ const state = {
   lives: LIVES_START,
   isRunning: false,
   isFrozen: false,
+  isSlowed: false,
   freezeTimer: null,
-  words: [],            // [{ text, el, x, y, active, matched }]
+  slowTimer: null,
+  words: [],
   typedBuffer: '',
   matchedWordIndex: -1,
-  spells: { fire: 3, ice: 3 },
+  wordsTyped: 0,
   lastSpawnTime: 0,
   lastFrameTime: 0,
   animFrameId: null,
-  levelStartTime: 0,
   levelUpTimer: null,
   scoreSubmitted: false
 };
@@ -59,8 +71,6 @@ const scoreDisplay  = document.getElementById('score-display');
 const levelDisplay  = document.getElementById('level-display');
 const livesDisplay  = document.getElementById('lives-display');
 const bufferDisplay = document.getElementById('typed-buffer-display');
-const fireCount     = document.getElementById('fire-count');
-const iceCount      = document.getElementById('ice-count');
 const startScreen   = document.getElementById('start-screen');
 const gameoverScreen= document.getElementById('gameover-screen');
 const finalScore    = document.getElementById('final-score');
@@ -74,10 +84,8 @@ function getGameAreaHeight() { return gameArea.getBoundingClientRect().height; }
 function getGameAreaWidth()  { return gameArea.getBoundingClientRect().width; }
 
 function getWordSpeed() {
-  // Nivel 1: 0.30 px/frame = 18px/s (muy lento, palabras flotan)
-  // Nivel 5: 1.10 px/frame = 66px/s (medio)
-  // Nivel 10: 2.10 px/frame = 126px/s (rápido)
-  return BASE_SPEED + (state.level - 1) * 0.2;
+  const base = BASE_SPEED + (state.level - 1) * 0.2;
+  return state.isSlowed ? base * 0.4 : base;
 }
 
 function getSpawnInterval() {
@@ -116,9 +124,10 @@ function pickWord() {
 // ── Elementos de palabras ────────────────────────────────────────────────
 
 /** Crea un elemento DOM para una palabra que cae */
-function createWordElement(word, x, fontSize) {
+function createWordElement(word, x, fontSize, type = 'normal') {
   const el = document.createElement('div');
   el.className = 'word-card';
+  if (type !== 'normal') el.classList.add(`powerup-${type}`);
   el.innerHTML = `<span class="remaining-part">${word}</span>`;
   el.style.left = `${x}px`;
   el.style.top = '-60px';
@@ -148,13 +157,25 @@ function spawnWord(now) {
   if (now - state.lastSpawnTime < getSpawnInterval()) return;
   state.lastSpawnTime = now;
 
-  const word = pickWord();
+  // 15% de probabilidad de power-up, máx 1 por tipo en pantalla
+  let wordText, wordType = 'normal';
+  if (Math.random() < 0.15) {
+    const activeTypes = new Set(state.words.filter(w => w.type !== 'normal').map(w => w.type));
+    const available = Object.keys(POWERUP_TYPES).filter(t => !activeTypes.has(t));
+    if (available.length > 0) {
+      wordType = available[Math.floor(Math.random() * available.length)];
+      const pool = POWERUP_TYPES[wordType].words;
+      wordText = pool[Math.floor(Math.random() * pool.length)];
+    }
+  }
+  if (wordType === 'normal') wordText = pickWord();
+
   const fontSize = getWordFontSize();
-  const maxX = Math.max(40, getGameAreaWidth() - word.length * fontSize * 0.6 - 40);
+  const maxX = Math.max(40, getGameAreaWidth() - wordText.length * fontSize * 0.6 - 40);
   const x = Math.floor(Math.random() * maxX) + 20;
 
-  const el = createWordElement(word, x, fontSize);
-  state.words.push({ text: word, el, x, y: -60, active: true, matched: false });
+  const el = createWordElement(wordText, x, fontSize, wordType);
+  state.words.push({ text: wordText, el, x, y: -60, active: true, matched: false, type: wordType });
 }
 
 // ── Actualización de posición ────────────────────────────────────────────
@@ -191,7 +212,7 @@ function checkGameOver() {
     if (!wordObj.active) continue;
     if (wordObj.y > areaHeight) {
       toRemove.push(i);
-      loseLife();
+      if (wordObj.type === 'normal') loseLife(); // solo palabras normales cuestan vida
     }
   }
 
@@ -270,7 +291,7 @@ function findMatch() {
   }
 }
 
-/** Destruye la palabra en el índice dado y suma puntos */
+/** Destruye la palabra en el índice dado y aplica efecto */
 function destroyWord(index) {
   const wordObj = state.words[index];
   if (!wordObj || !wordObj.active) return;
@@ -280,17 +301,26 @@ function destroyWord(index) {
   wordObj.el.classList.add('destroying');
   wordObj.el.classList.remove('matched');
 
-  // Puntos según longitud de la palabra
-  const len = wordObj.text.length;
-  let pts;
-  if (len <= 4) pts = 10 * state.level;
-  else if (len <= 7) pts = 20 * state.level;
-  else pts = 30 * state.level;
+  if (wordObj.type && wordObj.type !== 'normal') {
+    // Activar power-up
+    const pu = POWERUP_TYPES[wordObj.type];
+    showSpellNotice(pu.label, pu.color);
+    pu.effect();
+  } else {
+    // Puntuación normal
+    const len = wordObj.text.length;
+    let pts;
+    if (len <= 4)      pts = 10 * state.level;
+    else if (len <= 7) pts = 20 * state.level;
+    else               pts = 30 * state.level;
+    addScore(pts);
+    state.wordsTyped++;
+    updateProgressBar();
+    checkLevelUp();
+  }
 
-  addScore(pts);
   clearBuffer();
 
-  // Remover del DOM tras la animación (300ms)
   setTimeout(() => {
     if (wordObj.el.parentNode) wordObj.el.remove();
     const idx = state.words.indexOf(wordObj);
@@ -326,21 +356,21 @@ function addScore(pts) {
   updateHUD();
 }
 
-/** Verifica si se cumplieron los 60 segundos del nivel actual */
+/** Verifica si se completaron las palabras necesarias para el nivel actual */
 function checkLevelUp() {
-  if (!state.levelStartTime) return;
-  if (Date.now() - state.levelStartTime >= LEVEL_DURATION_MS) {
+  const needed = WORDS_BASE + (state.level - 1) * WORDS_PER_LEVEL;
+  if (state.wordsTyped >= needed) {
     state.level++;
-    showLevelUpScreen(); // resetea levelStartTime después del countdown
+    state.wordsTyped = 0;
+    showLevelUpScreen();
     updateHUD();
   }
 }
 
-/** Actualiza la barra de progreso basada en tiempo transcurrido */
+/** Actualiza la barra de progreso basada en palabras tipeadas */
 function updateProgressBar() {
-  if (!state.levelStartTime) return;
-  const elapsed = Date.now() - state.levelStartTime;
-  const pct = Math.min(100, (elapsed / LEVEL_DURATION_MS) * 100);
+  const needed = WORDS_BASE + (state.level - 1) * WORDS_PER_LEVEL;
+  const pct = Math.min(100, (state.wordsTyped / needed) * 100);
   document.getElementById('level-progress-fill').style.width = `${pct}%`;
 }
 
@@ -370,7 +400,6 @@ function showLevelUpScreen() {
       clearInterval(state.levelUpTimer);
       state.levelUpTimer = null;
       overlay.classList.remove('active');
-      state.levelStartTime = Date.now(); // el nivel empieza a contar desde aquí
       document.getElementById('level-progress-fill').style.width = '0%';
       state.isRunning = true;
       state.animFrameId = requestAnimationFrame(gameLoop);
@@ -384,62 +413,53 @@ function updateHUD() {
   scoreDisplay.textContent = state.score;
   levelDisplay.textContent = state.level;
   livesDisplay.textContent = '♥'.repeat(state.lives) + '♡'.repeat(Math.max(0, LIVES_START - state.lives));
-  fireCount.textContent = `x${state.spells.fire}`;
-  iceCount.textContent  = `x${state.spells.ice}`;
-
-  // Spell buttons
-  document.getElementById('spell-fire').classList.toggle('used', state.spells.fire <= 0);
-  document.getElementById('spell-ice').classList.toggle('used', state.spells.ice <= 0);
+  updateProgressBar();
 }
 
-// ── Hechizos ────────────────────────────────────────────────────────────
+// ── Efectos de Power-ups ─────────────────────────────────────────────────
 
-/** Activa el hechizo de Fuego: destruye todas las palabras en pantalla */
-function activateFire() {
-  if (!state.isRunning || state.spells.fire <= 0) return;
-  state.spells.fire--;
-  showSpellNotice('🔥 FUEGO ARCANO!', '#f97316');
-
-  const toDestroy = [...state.words.filter(w => w.active)];
-  if (toDestroy.length === 0) { state.spells.fire++; return; } // no gastar si no hay palabras
-
+function applyFire() {
+  const toDestroy = [...state.words.filter(w => w.active && w.type === 'normal')];
+  if (toDestroy.length === 0) return;
   let totalPts = 0;
   for (const w of toDestroy) {
     w.active = false;
     w.el.classList.add('destroying');
     const len = w.text.length;
-    if (len <= 4)      totalPts += 10 * state.level;
+    if (len <= 4) totalPts += 10 * state.level;
     else if (len <= 7) totalPts += 20 * state.level;
-    else               totalPts += 30 * state.level;
+    else totalPts += 30 * state.level;
     setTimeout(() => { if (w.el.parentNode) w.el.remove(); }, 320);
   }
   state.words = state.words.filter(w => !toDestroy.includes(w));
   addScore(totalPts);
-  clearBuffer();
   updateHUD();
 }
 
-/** Activa el hechizo de Hielo: congela las palabras 5 segundos */
-function activateIce() {
-  if (!state.isRunning || state.spells.ice <= 0) return;
-  if (state.isFrozen) return; // ya está congelado
-  state.spells.ice--;
+function applyIce() {
+  if (state.isFrozen) return;
   state.isFrozen = true;
-  showSpellNotice('❄️ TIEMPO CONGELADO!', '#38bdf8');
-
-  // Aplicar clase visual a todas las palabras
-  for (const w of state.words) {
-    if (w.active) w.el.classList.add('frozen');
-  }
-
-  // Limpiar timer anterior si existe
+  for (const w of state.words) { if (w.active) w.el.classList.add('frozen'); }
   if (state.freezeTimer) clearTimeout(state.freezeTimer);
   state.freezeTimer = setTimeout(() => {
     state.isFrozen = false;
     for (const w of state.words) w.el.classList.remove('frozen');
   }, FREEZE_DURATION);
+}
 
+function applySlow() {
+  state.isSlowed = true;
+  if (state.slowTimer) clearTimeout(state.slowTimer);
+  state.slowTimer = setTimeout(() => { state.isSlowed = false; }, SLOW_DURATION);
+}
+
+function applyHeal() {
+  state.lives = Math.min(LIVES_START + 2, state.lives + 1);
   updateHUD();
+}
+
+function applyBonus() {
+  addScore(50 * state.level);
 }
 
 function showSpellNotice(text, color) {
@@ -459,22 +479,13 @@ function showSpellNotice(text, color) {
 /**
  * Game loop principal usando requestAnimationFrame.
  * Recibe el timestamp de alta resolución del browser.
- * - Calcula deltaTime para movimiento independiente del framerate
- * - Llama a spawn, update y checkGameOver en cada frame
  */
 function gameLoop(timestamp) {
   if (!state.isRunning) return;
-
-  // Calcular delta (no se usa para velocidad simple basada en frames,
-  // pero se guarda para extensibilidad)
   state.lastFrameTime = timestamp;
-
   spawnWord(timestamp);
   updateWords();
   checkGameOver();
-  updateProgressBar();
-  checkLevelUp();
-
   if (state.isRunning) {
     state.animFrameId = requestAnimationFrame(gameLoop);
   }
@@ -486,7 +497,8 @@ function gameLoop(timestamp) {
 function initGame() {
   // Detener loop anterior y timers pendientes
   if (state.animFrameId) cancelAnimationFrame(state.animFrameId);
-  if (state.freezeTimer) clearTimeout(state.freezeTimer);
+  if (state.freezeTimer) { clearTimeout(state.freezeTimer); state.freezeTimer = null; }
+  if (state.slowTimer) { clearTimeout(state.slowTimer); state.slowTimer = null; }
   if (state.levelUpTimer) { clearInterval(state.levelUpTimer); state.levelUpTimer = null; }
 
   // Limpiar palabras del DOM
@@ -498,18 +510,20 @@ function initGame() {
   state.lives = LIVES_START;
   state.isRunning = true;
   state.isFrozen = false;
+  state.isSlowed = false;
   state.freezeTimer = null;
+  state.slowTimer = null;
   state.words = [];
   state.typedBuffer = '';
   state.matchedWordIndex = -1;
-  state.spells = { fire: 3, ice: 3 };
+  state.wordsTyped = 0;
   state.lastSpawnTime = 0;
   state.lastFrameTime = 0;
-  state.levelStartTime = Date.now();
   state.levelUpTimer = null;
   state.scoreSubmitted = false;
 
   updateHUD();
+  updateProgressBar();
   updateBufferDisplay();
 
   // Ocultar overlays
@@ -540,20 +554,11 @@ function endGame() {
 // ── Teclado ──────────────────────────────────────────────────────────────
 
 document.addEventListener('keydown', (e) => {
-  // No capturar si el foco está en el input del nombre
   if (document.activeElement === playerNameInput) return;
-
-  // Hechizos
-  if (e.code === 'Digit1') { e.preventDefault(); activateFire(); return; }
-  if (e.code === 'Digit2') { e.preventDefault(); activateIce(); return; }
-  if (e.code === 'Space')  { e.preventDefault(); activateFire(); return; }
-
-  // Borrar
   if (e.key === 'Backspace') {
     e.preventDefault();
     state.typedBuffer = state.typedBuffer.slice(0, -1);
     updateBufferDisplay();
-    // Re-evaluar match con buffer reducido
     if (state.matchedWordIndex >= 0) {
       const w = state.words[state.matchedWordIndex];
       if (w && w.active) {
@@ -568,8 +573,6 @@ document.addEventListener('keydown', (e) => {
     }
     return;
   }
-
-  // Letras
   if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
     e.preventDefault();
     handleTyping(e.key.toLowerCase());
@@ -602,10 +605,6 @@ document.getElementById('btn-submit-score').addEventListener('click', async () =
     btn.disabled = false;
   }
 });
-
-// Clicks en botones de hechizos
-document.getElementById('spell-fire').addEventListener('click', activateFire);
-document.getElementById('spell-ice').addEventListener('click', activateIce);
 
 // ── Leaderboard ──────────────────────────────────────────────────────────
 
@@ -646,7 +645,6 @@ function escapeHtml(str) {
 
 getTopTen((rankings, err) => {
   if (err) {
-    console.error('Error cargando ranking:', err);
     leaderboardList.innerHTML = '<li class="lb-loading">Sin conexión Firebase</li>';
     return;
   }
