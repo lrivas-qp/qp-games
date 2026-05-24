@@ -50,11 +50,11 @@ const LIVES_START = 3;
 
 // ── Power-ups (palabras especiales de colores) ────────────────────────────
 const POWERUP_TYPES = {
-  fire:  { words: ['fuego','brasa','llama'],  color: '#f97316', label: '🔥 ¡FUEGO ARCANO!',    effect: () => applyFire()  },
-  ice:   { words: ['hielo','nieve','polar'],  color: '#38bdf8', label: '❄️ ¡TIEMPO CONGELADO!', effect: () => applyIce()   },
-  slow:  { words: ['pausa','lento','calma'],  color: '#fbbf24', label: '⏳ ¡CÁMARA LENTA!',     effect: () => applySlow()  },
-  heal:  { words: ['salud','curar','sana'],   color: '#4ade80', label: '💚 ¡VIDA RECUPERADA!',  effect: () => applyHeal()  },
-  bonus: { words: ['extra','bono','plus'],    color: '#e879f9', label: '⭐ ¡PUNTOS EXTRA!',     effect: () => applyBonus() },
+  fire:  { word: 'fuego', color: '#f97316', label: '🔥 ¡FUEGO ARCANO!',    effect: () => applyFire()  },
+  ice:   { word: 'frio',  color: '#38bdf8', label: '❄️ ¡TIEMPO CONGELADO!', effect: () => applyIce()   },
+  slow:  { word: 'lento', color: '#fbbf24', label: '⏳ ¡CÁMARA LENTA!',     effect: () => applySlow()  },
+  heal:  { word: 'cura',  color: '#4ade80', label: '💚 ¡VIDA RECUPERADA!',  effect: () => applyHeal()  },
+  bonus: { word: 'bonus', color: '#e879f9', label: '⭐ ¡PUNTOS EXTRA!',     effect: () => applyBonus() },
 };
 
 // ── Estado del juego ─────────────────────────────────────────────────────
@@ -166,7 +166,7 @@ function updateWordHighlight(wordObj) {
 
 /** Lanza una nueva palabra en posición aleatoria horizontal */
 function spawnWord(now) {
-  if (!state.isRunning || state.words.length >= MAX_WORDS_ON_SCREEN) return;
+  if (!state.isRunning || state.isFrozen || state.words.length >= MAX_WORDS_ON_SCREEN) return;
   if (now - state.lastSpawnTime < getSpawnInterval()) return;
   state.lastSpawnTime = now;
 
@@ -177,8 +177,7 @@ function spawnWord(now) {
     const available = Object.keys(POWERUP_TYPES).filter(t => !activeTypes.has(t));
     if (available.length > 0) {
       wordType = available[Math.floor(Math.random() * available.length)];
-      const pool = POWERUP_TYPES[wordType].words;
-      wordText = pool[Math.floor(Math.random() * pool.length)];
+      wordText = POWERUP_TYPES[wordType].word;
     }
   }
   if (wordType === 'normal') wordText = pickWord();
@@ -451,13 +450,13 @@ function applyFire() {
     setTimeout(() => { if (w.el.parentNode) w.el.remove(); }, 320);
   }
   state.words = state.words.filter(w => !toDestroy.includes(w));
-  // Reiniciar reloj de spawn para evitar avalancha de palabras tras la limpieza
+  state.wordsTyped += toDestroy.length; // el fuego cuenta hacia la barra de progreso
   state.lastSpawnTime = state.lastFrameTime + 1500;
   addScore(totalPts);
-  // Actualizar texto de la notificación con los puntos ganados
   const notice = document.getElementById('spell-notice');
   if (notice) notice.textContent = `🔥 ¡FUEGO ARCANO! +${totalPts} pts`;
   updateHUD();
+  checkLevelUp();
 }
 
 function applyIce() {
@@ -468,13 +467,17 @@ function applyIce() {
   state.freezeTimer = setTimeout(() => {
     state.isFrozen = false;
     for (const w of state.words) w.el.classList.remove('frozen');
+    state.lastSpawnTime = state.lastFrameTime + 1500; // pausa spawn al descongelar
   }, FREEZE_DURATION);
 }
 
 function applySlow() {
   state.isSlowed = true;
   if (state.slowTimer) clearTimeout(state.slowTimer);
-  state.slowTimer = setTimeout(() => { state.isSlowed = false; }, SLOW_DURATION);
+  state.slowTimer = setTimeout(() => {
+    state.isSlowed = false;
+    state.lastSpawnTime = state.lastFrameTime + 1500; // pausa spawn al terminar slow
+  }, SLOW_DURATION);
 }
 
 function applyHeal() {
