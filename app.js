@@ -1,7 +1,7 @@
 import { firebaseConfig } from './firebase-config.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import {
-  getDatabase, ref, set, get, update, push, onValue, off,
+  getDatabase, ref, set, get, update, push, onValue,
   serverTimestamp, runTransaction, remove, onDisconnect
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
 
@@ -92,8 +92,8 @@ function clearTimers() {
 }
 
 function detachRoomListener() {
-  if (local.roomRef && local.roomListener) {
-    off(local.roomRef, 'value', local.roomListener);
+  if (local.roomListener) {
+    local.roomListener(); // onValue() devuelve la función de unsuscripción — hay que llamarla directamente
     local.roomListener = null;
   }
 }
