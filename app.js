@@ -25,12 +25,12 @@ const WORD_LIST = [
 ];
 
 // ── Constantes del juego ─────────────────────────────────────────────────
-const BASE_SPEED = 0.6;          // px por frame (60fps ≈ 36px/s)
-const SPAWN_BASE_MS = 2800;      // ms entre palabras nivel 1
+const BASE_SPEED = 0.3;          // px por frame (60fps ≈ 18px/s, muy lento en nivel 1)
+const SPAWN_BASE_MS = 1000;      // ms entre palabras nivel 1 (1 palabra/segundo)
 const POINTS_PER_CHAR = 10;      // puntos base por carácter
-const LEVEL_DURATION_MS = 60000; // 60 segundos por nivel
+const LEVEL_DURATION_MS = 45000; // 45 segundos por nivel
 const FREEZE_DURATION = 5000;    // ms que dura el hielo
-const MAX_WORDS_ON_SCREEN = 8;   // palabras máximas simultáneas
+const MAX_WORDS_ON_SCREEN = 10;  // hasta 10 palabras simultáneas
 const LIVES_START = 3;
 
 // ── Estado del juego ─────────────────────────────────────────────────────
@@ -74,24 +74,33 @@ function getGameAreaHeight() { return gameArea.getBoundingClientRect().height; }
 function getGameAreaWidth()  { return gameArea.getBoundingClientRect().width; }
 
 function getWordSpeed() {
-  return BASE_SPEED + (state.level - 1) * 0.4;
+  // Nivel 1: 0.30 px/frame = 18px/s (muy lento, palabras flotan)
+  // Nivel 5: 1.10 px/frame = 66px/s (medio)
+  // Nivel 10: 2.10 px/frame = 126px/s (rápido)
+  return BASE_SPEED + (state.level - 1) * 0.2;
 }
 
 function getSpawnInterval() {
-  return Math.max(900, SPAWN_BASE_MS - (state.level - 1) * 220);
+  // Nivel 1: 1000ms (1 palabra/seg → pantalla se llena de a poco)
+  // Nivel 6: 600ms (límite mínimo — lluvia constante)
+  return Math.max(600, SPAWN_BASE_MS - (state.level - 1) * 80);
 }
 
 function getWordFontSize() {
-  return Math.min(48, 18 + state.level * 3);
+  // Nivel 1: 20px (pequeño, caben más palabras)
+  // Nivel 10: 36px (más grande y amenazante)
+  return Math.min(36, 20 + (state.level - 1) * 2);
 }
 
 /** Filtra palabras por longitud según el nivel actual */
 function getWordPool() {
   let minLen, maxLen;
-  if (state.level <= 2)      { minLen = 3; maxLen = 4; }
-  else if (state.level <= 4) { minLen = 4; maxLen = 6; }
-  else if (state.level <= 6) { minLen = 5; maxLen = 7; }
-  else                        { minLen = 6; maxLen = 20; }
+  if (state.level === 1)      { minLen = 3; maxLen = 3; } // solo 3 letras, pantalla llena y fácil
+  else if (state.level === 2) { minLen = 3; maxLen = 4; }
+  else if (state.level <= 4)  { minLen = 3; maxLen = 5; }
+  else if (state.level <= 6)  { minLen = 4; maxLen = 6; }
+  else if (state.level <= 8)  { minLen = 5; maxLen = 7; }
+  else                         { minLen = 6; maxLen = 20; }
   return WORD_LIST.filter(w => w.length >= minLen && w.length <= maxLen);
 }
 
