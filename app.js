@@ -325,19 +325,28 @@ function handleRoomUpdate(room) {
       renderValidating(room); // siempre re-renderizar para reflejar cambios de votos
       break;
     }
-    case 'round-scores':
+    case 'round-scores': {
       clearTimers();
-      if (local.lastRenderedPhase !== 'round-scores') {
+      const isFirstRoundScoresRender = local.lastRenderedPhase !== 'round-scores';
+      if (isFirstRoundScoresRender) {
         showScreen('screen-round-scores');
         renderRoundScores(room);
+      } else {
+        // Re-render si el ranking no muestra a todos los jugadores (race condition de Firebase)
+        const scoresList = el('round-scores-list');
+        const expectedCount = Object.keys(room.players || {}).length;
+        if (scoresList && scoresList.children.length !== expectedCount) {
+          renderRoundScores(room);
+        }
       }
       break;
+    }
     case 'final-scores':
       clearTimers();
       if (local.lastRenderedPhase !== 'final-scores') {
         showScreen('screen-final-scores');
-        renderFinalScores(room);
       }
+      renderFinalScores(room);
       break;
     default:
       break;
