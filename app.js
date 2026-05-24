@@ -391,6 +391,12 @@ function showLevelUpScreen() {
   state.isRunning = false;
   if (state.animFrameId) cancelAnimationFrame(state.animFrameId);
 
+  // Limpiar todas las palabras del área antes de mostrar el overlay
+  for (const w of state.words) { if (w.el.parentNode) w.el.remove(); }
+  state.words = [];
+  state.matchedWordIndex = -1;
+  clearBuffer();
+
   const overlay = document.getElementById('levelup-overlay');
   const levelEl = document.getElementById('levelup-level-num');
   const countEl = document.getElementById('levelup-countdown');
