@@ -1,5 +1,5 @@
 // ── Imports Firebase (firebase-config.js escrito por otro agente) ────────
-import { saveScore, getTopTen } from './firebase-config.js';
+import { saveScore, getTopTen } from './firebase-config.js?v=3';
 
 // ── Lista de palabras en español (sin tildes para facilitar tipeo) ────────
 const WORD_LIST = [
