@@ -8,9 +8,6 @@ import {
   getDatabase,
   ref,
   push,
-  query,
-  orderByChild,
-  limitToLast,
   get
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
 
@@ -83,15 +80,14 @@ export function getTopTen(callback) {
 
   try {
     const rankingsRef = ref(db, RANKINGS_PATH);
-    const top10Query = query(rankingsRef, orderByChild('puntuacion'), limitToLast(10));
-    get(top10Query)
+    get(rankingsRef)
       .then(snapshot => {
         clearTimeout(timeout);
         if (!snapshot.exists()) { once([], null); return; }
         const entries = [];
         snapshot.forEach(child => entries.push({ id: child.key, ...child.val() }));
         entries.sort((a, b) => b.puntuacion - a.puntuacion);
-        once(entries, null);
+        once(entries.slice(0, 10), null);
       })
       .catch(err => {
         clearTimeout(timeout);
