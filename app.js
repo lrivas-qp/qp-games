@@ -901,7 +901,7 @@ async function transitionToValidating() {
   });
 
   const connectedCount = Object.values(players).filter(p => p.connected).length;
-  const validationDuration = Math.max(10, connectedCount * 2);
+  const validationDuration = Math.max(2, connectedCount * 2);
 
   updates['state/phase'] = 'validating';
   updates['state/validationCategoryIndex'] = 0;
@@ -1225,7 +1225,13 @@ function renderRoundScores(room) {
   if (waitingMsg) waitingMsg.style.display = local.isHost ? 'none' : 'block';
 
   if (btnNext && !btnNext._listenerAdded) {
-    btnNext.addEventListener('click', () => advanceFromRoundScores(totalRounds, roundNum));
+    btnNext.addEventListener('click', () => {
+      const room = local.currentRoom;
+      if (!room) return;
+      const tr = (room.config && room.config.totalRounds) || 3;
+      const cr = (room.state && room.state.currentRound) || 1;
+      advanceFromRoundScores(tr, cr);
+    });
     btnNext._listenerAdded = true;
   }
 }

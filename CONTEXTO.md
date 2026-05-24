@@ -70,7 +70,7 @@ El juego STOP! es un juego de palabras multiplayer para hasta 20 jugadores.
    - Si se acaba el tiempo, ocurre lo mismo (timer sincronizado por Firebase).
 
 5. **Validating** → se validan las respuestas categoría por categoría.
-   - Cada categoría tiene un timer dinámico: `max(10, jugadores_conectados × 2)` segundos.
+   - Cada categoría tiene un timer dinámico: `max(2, jugadores_conectados × 2)` segundos.
    - Se muestran las respuestas de TODOS los jugadores (excepto la propia).
    - Por defecto, la respuesta está marcada como ✓ válida.
    - Cualquier jugador puede marcar ✗ inválida la respuesta de otro.
