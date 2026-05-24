@@ -28,7 +28,7 @@ const WORD_LIST = [
 const BASE_SPEED = 0.6;          // px por frame (60fps ≈ 36px/s)
 const SPAWN_BASE_MS = 2800;      // ms entre palabras nivel 1
 const POINTS_PER_CHAR = 10;      // puntos base por carácter
-const LEVEL_UP_SCORE = 500;      // puntos para subir de nivel
+const LEVEL_DURATION_MS = 60000; // 60 segundos por nivel
 const FREEZE_DURATION = 5000;    // ms que dura el hielo
 const MAX_WORDS_ON_SCREEN = 8;   // palabras máximas simultáneas
 const LIVES_START = 3;
@@ -48,8 +48,7 @@ const state = {
   lastSpawnTime: 0,
   lastFrameTime: 0,
   animFrameId: null,
-  nextLevelScore: LEVEL_UP_SCORE,
-  prevLevelScore: 0,
+  levelStartTime: 0,
   levelUpTimer: null,
   scoreSubmitted: false
 };
@@ -316,17 +315,24 @@ function clearBuffer() {
 function addScore(pts) {
   state.score += pts;
   updateHUD();
-  checkLevelUp();
 }
 
+/** Verifica si se cumplieron los 60 segundos del nivel actual */
 function checkLevelUp() {
-  if (state.score >= state.nextLevelScore) {
+  if (!state.levelStartTime) return;
+  if (Date.now() - state.levelStartTime >= LEVEL_DURATION_MS) {
     state.level++;
-    state.prevLevelScore = state.nextLevelScore;
-    state.nextLevelScore = state.prevLevelScore + LEVEL_UP_SCORE + (state.level - 1) * 200;
-    showLevelUpScreen();
+    showLevelUpScreen(); // resetea levelStartTime después del countdown
     updateHUD();
   }
+}
+
+/** Actualiza la barra de progreso basada en tiempo transcurrido */
+function updateProgressBar() {
+  if (!state.levelStartTime) return;
+  const elapsed = Date.now() - state.levelStartTime;
+  const pct = Math.min(100, (elapsed / LEVEL_DURATION_MS) * 100);
+  document.getElementById('level-progress-fill').style.width = `${pct}%`;
 }
 
 function showLevelUpScreen() {
@@ -355,6 +361,8 @@ function showLevelUpScreen() {
       clearInterval(state.levelUpTimer);
       state.levelUpTimer = null;
       overlay.classList.remove('active');
+      state.levelStartTime = Date.now(); // el nivel empieza a contar desde aquí
+      document.getElementById('level-progress-fill').style.width = '0%';
       state.isRunning = true;
       state.animFrameId = requestAnimationFrame(gameLoop);
     }
@@ -373,11 +381,6 @@ function updateHUD() {
   // Spell buttons
   document.getElementById('spell-fire').classList.toggle('used', state.spells.fire <= 0);
   document.getElementById('spell-ice').classList.toggle('used', state.spells.ice <= 0);
-
-  // Barra de progreso
-  const range = state.nextLevelScore - state.prevLevelScore;
-  const progress = Math.min(100, Math.max(0, (state.score - state.prevLevelScore) / range * 100));
-  document.getElementById('level-progress-fill').style.width = `${progress}%`;
 }
 
 // ── Hechizos ────────────────────────────────────────────────────────────
@@ -389,13 +392,20 @@ function activateFire() {
   showSpellNotice('🔥 FUEGO ARCANO!', '#f97316');
 
   const toDestroy = [...state.words.filter(w => w.active)];
+  if (toDestroy.length === 0) { state.spells.fire++; return; } // no gastar si no hay palabras
+
+  let totalPts = 0;
   for (const w of toDestroy) {
     w.active = false;
     w.el.classList.add('destroying');
+    const len = w.text.length;
+    if (len <= 4)      totalPts += 10 * state.level;
+    else if (len <= 7) totalPts += 20 * state.level;
+    else               totalPts += 30 * state.level;
     setTimeout(() => { if (w.el.parentNode) w.el.remove(); }, 320);
   }
   state.words = state.words.filter(w => !toDestroy.includes(w));
-  addScore(300);
+  addScore(totalPts);
   clearBuffer();
   updateHUD();
 }
@@ -453,6 +463,8 @@ function gameLoop(timestamp) {
   spawnWord(timestamp);
   updateWords();
   checkGameOver();
+  updateProgressBar();
+  checkLevelUp();
 
   if (state.isRunning) {
     state.animFrameId = requestAnimationFrame(gameLoop);
@@ -484,8 +496,7 @@ function initGame() {
   state.spells = { fire: 3, ice: 3 };
   state.lastSpawnTime = 0;
   state.lastFrameTime = 0;
-  state.nextLevelScore = LEVEL_UP_SCORE;
-  state.prevLevelScore = 0;
+  state.levelStartTime = Date.now();
   state.levelUpTimer = null;
   state.scoreSubmitted = false;
 
