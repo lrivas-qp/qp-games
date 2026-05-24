@@ -8,7 +8,8 @@ import {
   getDatabase,
   ref,
   push,
-  get
+  get,
+  onValue
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
 
 // ── Credenciales (reemplaza con las tuyas desde Firebase Console) ─────────
@@ -80,20 +81,19 @@ export function getTopTen(callback) {
 
   try {
     const rankingsRef = ref(db, RANKINGS_PATH);
-    get(rankingsRef)
-      .then(snapshot => {
-        clearTimeout(timeout);
-        if (!snapshot.exists()) { once([], null); return; }
-        const entries = [];
-        snapshot.forEach(child => entries.push({ id: child.key, ...child.val() }));
-        entries.sort((a, b) => b.puntuacion - a.puntuacion);
-        once(entries.slice(0, 10), null);
-      })
-      .catch(err => {
-        clearTimeout(timeout);
-        console.error('[Firebase] Error obteniendo top 10:', err);
-        once(null, err);
-      });
+    // onValue con onlyOnce:true fuerza lectura desde servidor, evita cache local
+    onValue(rankingsRef, (snapshot) => {
+      clearTimeout(timeout);
+      if (!snapshot.exists()) { once([], null); return; }
+      const entries = [];
+      snapshot.forEach(child => entries.push({ id: child.key, ...child.val() }));
+      entries.sort((a, b) => b.puntuacion - a.puntuacion);
+      once(entries.slice(0, 10), null);
+    }, (err) => {
+      clearTimeout(timeout);
+      console.error('[Firebase] Error obteniendo top 10:', err);
+      once(null, err);
+    }, { onlyOnce: true });
   } catch (err) {
     clearTimeout(timeout);
     once(null, err);

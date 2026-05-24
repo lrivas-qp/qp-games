@@ -573,10 +573,11 @@ function endGame() {
 
   // Prellenar nombre desde localStorage
   const savedName = localStorage.getItem('typing-maniac-name');
-  if (savedName) playerNameInput.value = savedName;
+  playerNameInput.value = savedName || '';
 
   gameoverScreen.classList.add('active');
   playerNameInput.focus();
+  if (savedName) playerNameInput.select(); // selecciona todo para fácil reemplazo
 }
 
 // ── Teclado ──────────────────────────────────────────────────────────────
@@ -628,6 +629,7 @@ document.getElementById('btn-submit-score').addEventListener('click', async () =
     localStorage.setItem('typing-maniac-name', name);
     state.scoreSubmitted = true;
     btn.textContent = '✅ Guardado!';
+    loadLeaderboard(); // pre-fetch para que el ranking esté listo al volver al menú
   } catch (err) {
     console.error('Error guardando score:', err);
     btn.textContent = '❌ Error - Reintenta';
