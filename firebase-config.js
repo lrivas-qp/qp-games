@@ -16,13 +16,13 @@ import {
 
 // ── Credenciales (reemplaza con las tuyas desde Firebase Console) ─────────
 const firebaseConfig = {
-  apiKey:            "YOUR_API_KEY",
-  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
-  databaseURL:       "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-  projectId:         "YOUR_PROJECT_ID",
-  storageBucket:     "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId:             "YOUR_APP_ID"
+  apiKey:            "AIzaSyAZEueX7LlMb1RCEO0f96kKJMeOJGHI4WM",
+  authDomain:        "stop-game-4f8e3.firebaseapp.com",
+  databaseURL:       "https://stop-game-4f8e3-default-rtdb.firebaseio.com",
+  projectId:         "stop-game-4f8e3",
+  storageBucket:     "stop-game-4f8e3.firebasestorage.app",
+  messagingSenderId: "734539466367",
+  appId:             "1:734539466367:web:844d8129a2d7741a4b214a"
 };
 
 // ── Inicialización ────────────────────────────────────────────────────────
