@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Juegos QP</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f1226;
+      --bg-2: #1a1f3d;
+      --card: #20264f;
+      --card-hover: #2a3168;
+      --accent: #6c5ce7;
+      --accent-2: #00d2d3;
+      --text: #f5f6ff;
+      --text-muted: #a9b0d6;
+      --border: #343b6e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Poppins', system-ui, sans-serif;
+      min-height: 100vh;
+      color: var(--text);
+      background: radial-gradient(circle at 20% 10%, #2a3168 0%, transparent 45%),
+                  radial-gradient(circle at 85% 90%, #1c2a52 0%, transparent 50%),
+                  var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 20px;
+    }
+    .header { text-align: center; margin-bottom: 48px; }
+    .logo {
+      font-size: clamp(2.5rem, 8vw, 4.5rem);
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      background: linear-gradient(120deg, var(--accent-2), var(--accent));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.05;
+    }
+    .subtitle {
+      margin-top: 12px;
+      color: var(--text-muted);
+      font-size: clamp(0.95rem, 2.5vw, 1.15rem);
+      font-weight: 400;
+    }
+    .games-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+      width: 100%;
+      max-width: 860px;
+    }
+    .game-card {
+      display: flex;
+      flex-direction: column;
+      text-decoration: none;
+      color: inherit;
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      padding: 28px 26px;
+      transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .game-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(108,92,231,0.12), rgba(0,210,211,0.08));
+      opacity: 0;
+      transition: opacity 0.18s ease;
+    }
+    .game-card:hover {
+      transform: translateY(-6px);
+      border-color: var(--accent);
+      background: var(--card-hover);
+      box-shadow: 0 18px 40px rgba(0,0,0,0.35);
+    }
+    .game-card:hover::before { opacity: 1; }
+    .game-icon { font-size: 3.2rem; margin-bottom: 14px; line-height: 1; position: relative; }
+    .game-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; position: relative; }
+    .game-desc { color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; flex: 1; position: relative; }
+    .game-cta {
+      margin-top: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      color: var(--accent-2);
+      position: relative;
+    }
+    .game-card:hover .game-cta { gap: 12px; }
+    .footer { margin-top: 56px; color: var(--text-muted); font-size: 0.85rem; text-align: center; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1 class="logo">🎮 Juegos QP</h1>
+    <p class="subtitle">Colección de juegos para jugar en equipo. ¡Elige uno y a jugar!</p>
+  </header>
+
+  <main class="games-grid">
+    <a class="game-card" href="./stop-game/">
+      <div class="game-icon">🛑</div>
+      <div class="game-title">STOP!</div>
+      <p class="game-desc">El clásico Stop / Tutti Frutti en tiempo real. Crea una sala, invita a tus amigos y compite categoría por categoría.</p>
+      <span class="game-cta">Jugar &rarr;</span>
+    </a>
+
+    <a class="game-card" href="./typing-maniac/">
+      <div class="game-icon">⌨️</div>
+      <div class="game-title">Typing Maniac</div>
+      <p class="game-desc">Escribe las palabras que caen antes de que lleguen al fondo. Pon a prueba tu velocidad y sube al ranking.</p>
+      <span class="game-cta">Jugar &rarr;</span>
+    </a>
+  </main>
+
+  <footer class="footer">
+    Hecho con ❤️ por QP &middot; Más juegos en camino…
+  </footer>
+</body>
+</html>
