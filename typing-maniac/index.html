@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Typing Maniac</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <!-- favicon SVG inline -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⌨️</text></svg>">
+</head>
+<body>
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-left">
+      <span class="hud-label">SCORE</span>
+      <span id="score-display">0</span>
+    </div>
+    <div class="hud-center">
+      <span class="hud-label">LEVEL</span>
+      <span id="level-display">1</span>
+    </div>
+    <div class="hud-right">
+      <span class="hud-label">LIVES</span>
+      <span id="lives-display">♥♥♥</span>
+    </div>
+  </div>
+
+  <!-- Área de juego -->
+  <div id="game-area">
+    <!-- Las palabras caen aquí (inyectadas por JS) -->
+    <!-- Buffer de escritura visible -->
+    <div id="typed-buffer-display"></div>
+  </div>
+
+  <!-- Barra de progreso de nivel -->
+  <div id="level-progress-bar"><div id="level-progress-fill"></div></div>
+
+  <!-- Pantalla de inicio -->
+  <div id="start-screen" class="overlay active">
+    <div class="overlay-card">
+      <div class="game-logo">
+        <div class="logo-title">TYPING</div>
+        <div class="logo-title logo-maniac">MANIAC</div>
+        <div class="logo-subtitle">⌨️ Type fast. Survive. ⌨️</div>
+      </div>
+      <div class="leaderboard-section">
+        <h3 class="section-title">🏆 TOP 10</h3>
+        <ol id="leaderboard-list" class="leaderboard-list">
+          <li class="lb-loading">Cargando ranking...</li>
+        </ol>
+      </div>
+      <button id="btn-start" class="btn btn-primary">▶ INICIAR JUEGO</button>
+      <p class="controls-hint">
+        Tipea las palabras · Colores especiales = poderes · [BKSP] Borrar
+      </p>
+    </div>
+  </div>
+
+  <!-- Pantalla de Game Over -->
+  <div id="gameover-screen" class="overlay">
+    <div class="overlay-card">
+      <h2 class="gameover-title">💀 GAME OVER</h2>
+      <div class="final-stats">
+        <div class="stat-row"><span>Puntuación</span><span id="final-score">0</span></div>
+        <div class="stat-row"><span>Nivel</span><span id="final-level">1</span></div>
+      </div>
+      <div class="name-entry">
+        <label for="player-name">Tu nombre:</label>
+        <input type="text" id="player-name" maxlength="20" placeholder="Escribe tu nombre..." autocomplete="off">
+      </div>
+      <button id="btn-submit-score" class="btn btn-primary">💾 GUARDAR PUNTUACIÓN</button>
+      <button id="btn-play-again" class="btn btn-secondary">🔄 JUGAR DE NUEVO</button>
+      <button id="btn-back-to-menu" class="btn btn-secondary">🏠 VER RANKING</button>
+    </div>
+  </div>
+
+  <!-- Overlay de subida de nivel -->
+  <div id="levelup-overlay" class="overlay">
+    <div class="levelup-card">
+      <div class="levelup-badge">¡NIVEL SUPERADO!</div>
+      <div class="levelup-num" id="levelup-level-num">2</div>
+      <div class="levelup-sublabel">INICIANDO EN</div>
+      <div class="levelup-countdown" id="levelup-countdown">3</div>
+    </div>
+  </div>
+
+  <!-- Notificación de hechizo -->
+  <div id="spell-notice" class="spell-notice hidden"></div>
+
+  <script type="module" src="app.js?v=3"></script>
+</body>
+</html>
