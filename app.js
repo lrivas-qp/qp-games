@@ -9,7 +9,7 @@ import {
 // CONSTANTES
 // ─────────────────────────────────────────────
 const DEFAULT_CATEGORIES = [
-  'Nombre', 'Apellido', 'Animal', 'Ciudad', 'País',
+  'Nombre', 'Apellido', 'Animal', 'Ciudad/País',
   'Comida', 'Color', 'Marca', 'Cosa/Objeto', 'Profesión',
   'Película/Serie', 'Deporte'
 ];
@@ -1279,7 +1279,11 @@ function renderRoundScores(room) {
   const btnNext = el('btn-next-round');
   const waitingMsg = el('round-scores-waiting');
 
-  if (btnNext) btnNext.classList.toggle('hidden', !local.isHost);
+  const isLastRound = roundNum >= totalRounds;
+  if (btnNext) {
+    btnNext.classList.toggle('hidden', !local.isHost);
+    btnNext.textContent = isLastRound ? 'Ver resultados' : 'Siguiente Ronda →';
+  }
   if (waitingMsg) waitingMsg.style.display = local.isHost ? 'none' : 'block';
 
   if (btnNext && !btnNext._listenerAdded) {
@@ -1343,18 +1347,31 @@ function renderFinalScores(room) {
   const sorted = Object.entries(players)
     .sort((a, b) => (b[1].totalScore || 0) - (a[1].totalScore || 0));
 
-  const winner = sorted[0];
+  // Puntaje máximo y todos los jugadores que lo alcanzan (puede haber empate)
+  const topScore = sorted.length ? (sorted[0][1].totalScore || 0) : 0;
+  const winners = sorted.filter(([, p]) => (p.totalScore || 0) === topScore);
+
   const winnerEl = el('final-winner-name');
   if (winnerEl) {
-    winnerEl.textContent = winner ? `¡${escapeHtml(winner[1].name)} gana!` : '¡Fin del juego!';
+    if (winners.length === 0) {
+      winnerEl.textContent = '¡Fin del juego!';
+    } else if (winners.length === 1) {
+      winnerEl.textContent = `¡${winners[0][1].name} gana!`;
+    } else {
+      const names = winners.map(([, p]) => p.name);
+      const last = names.pop();
+      const joined = `${names.join(', ')} y ${last}`;
+      winnerEl.textContent = `¡Empate! Ganan ${joined}`;
+    }
   }
 
   const finalList = el('final-scores-list');
   if (finalList) {
     finalList.innerHTML = '';
     sorted.forEach(([pid, player], index) => {
+      const isWinner = (player.totalScore || 0) === topScore;
       const li = document.createElement('li');
-      li.className = `final-score-item${pid === local.playerId ? ' me' : ''}${index === 0 ? ' winner' : ''}`;
+      li.className = `final-score-item${pid === local.playerId ? ' me' : ''}${isWinner ? ' winner' : ''}`;
       li.innerHTML = `
         <span class="final-rank">#${index + 1}</span>
         <span class="final-name">${escapeHtml(player.name)}</span>
