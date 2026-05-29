@@ -1,0 +1,26 @@
+# No ignorar firebase-config.js porque tiene valores placeholder (no secretos reales)
+# Solo ignorar si el usuario pone credenciales reales ahí - pero para este juego interno está bien
+
+# Dependencias
+node_modules/
+.npm/
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
