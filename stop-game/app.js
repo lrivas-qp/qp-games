@@ -34,7 +34,8 @@ const local = {
   answerDebounceTimers: {},
   lastRenderedPhase: null,
   lastValidationCategoryIndex: -1,
-  stopTransitionScheduled: false
+  stopTransitionScheduled: false,
+  cheatedRound: null
 };
 
 // ─────────────────────────────────────────────
@@ -715,6 +716,11 @@ function renderPlaying(room) {
   const roundInfo = el('game-round-info');
   if (roundInfo) roundInfo.textContent = `Ronda ${state.currentRound} de ${totalRounds}`;
 
+  // Nueva ronda: limpiar marca anti-trampa y ocultar aviso
+  local.cheatedRound = null;
+  const cheatNotice = el('game-cheat-notice');
+  if (cheatNotice) cheatNotice.classList.add('hidden');
+
   // Contador de jugadores conectados
   updatePlayingPlayerCount(room);
 
@@ -866,6 +872,42 @@ async function pressStop() {
 }
 
 // ─────────────────────────────────────────────
+// ANTI-TRAMPA: detectar salida de pantalla/pestaña
+// ─────────────────────────────────────────────
+// Si el jugador cambia de pestaña o desenfoca la ventana durante la fase de
+// juego activo, se invalida su ronda (todas sus respuestas valen 0).
+function markCheated(reason) {
+  const room = local.currentRoom;
+  if (!room || !room.state) return;
+  if (room.state.phase !== 'playing') return;       // solo durante el juego activo
+  if (room.state.stoppedBy) return;                  // la ronda ya terminó
+  if (!local.roomCode || !local.playerId) return;
+  const roundNum = room.state.currentRound || 1;
+  if (local.cheatedRound === roundNum) return;       // ya marcado en esta ronda
+  local.cheatedRound = roundNum;
+
+  set(ref(db, `rooms/${local.roomCode}/rounds/${roundNum}/cheated/${local.playerId}`), {
+    name: local.playerName || '',
+    reason: reason || '',
+    at: Date.now()
+  }).catch(console.error);
+
+  // Bloquear la ronda localmente y avisar
+  document.querySelectorAll('.category-input').forEach(i => { i.disabled = true; });
+  const btnStop = el('btn-stop');
+  if (btnStop) btnStop.disabled = true;
+  const notice = el('game-cheat-notice');
+  if (notice) notice.classList.remove('hidden');
+}
+
+function setupAntiCheat() {
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) markCheated('cambió de pestaña');
+  });
+  window.addEventListener('blur', () => markCheated('salió de la ventana'));
+}
+
+// ─────────────────────────────────────────────
 // TIMER DE RONDA
 // ─────────────────────────────────────────────
 function startRoundTimer(roundStartedAt, roundDuration, room) {
@@ -991,6 +1033,7 @@ function renderValidating(room) {
 
   const players = room.players || {};
   const validation = (room.rounds && room.rounds[roundNum] && room.rounds[roundNum].validation && room.rounds[roundNum].validation[safeCat]) || {};
+  const cheated = (room.rounds && room.rounds[roundNum] && room.rounds[roundNum].cheated) || {};
 
   Object.entries(players)
     .sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0))
@@ -999,22 +1042,28 @@ function renderValidating(room) {
       const vData = validation[pid] || { answer: '', invalidVotes: {}, finalValid: null };
       const myVoteInvalid = vData.invalidVotes && vData.invalidVotes[local.playerId];
 
-      // Respuestas vacías o de una sola letra son inválidas por defecto y NO se pueden cambiar
+      // Bloqueadas (inválidas por defecto, sin poder cambiarse):
+      //  - respuestas vacías o de una sola letra
+      //  - jugadores que salieron de la pantalla durante la ronda
       const answerTrimmed = (vData.answer || '').trim();
       const tooShort = answerTrimmed.length < 2;
-      // Estado mostrado: si es demasiado corta → inválida (bloqueada); si no, según mi voto
-      const showInvalid = tooShort ? true : !!myVoteInvalid;
+      const cheatedPlayer = !!cheated[pid];
+      const locked = tooShort || cheatedPlayer;
+      // Estado mostrado: si está bloqueada → inválida; si no, según mi voto
+      const showInvalid = locked ? true : !!myVoteInvalid;
 
       const card = document.createElement('div');
-      card.className = `answer-card${tooShort ? ' locked-invalid' : ''}`;
+      card.className = `answer-card${locked ? ' locked-invalid' : ''}`;
       card.dataset.playerId = pid;
       card.dataset.category = safeCat;
 
-      const disabledAttr = tooShort ? 'disabled' : '';
-      const lockTitle = tooShort ? ' (respuesta inválida: mínimo 2 caracteres)' : '';
+      const disabledAttr = locked ? 'disabled' : '';
+      const lockTitle = cheatedPlayer ? ' (invalidada: salió de la pantalla)'
+                       : tooShort ? ' (respuesta inválida: mínimo 2 caracteres)' : '';
+      const cheatTag = cheatedPlayer ? ' <span class="cheat-tag">🚫 salió</span>' : '';
 
       card.innerHTML = `
-        <span class="answer-player-name">${escapeHtml(player.name)}</span>
+        <span class="answer-player-name">${escapeHtml(player.name)}${cheatTag}</span>
         <span class="answer-text">${escapeHtml(vData.answer || '(sin respuesta)')}</span>
         <div class="answer-vote-buttons">
           <button class="btn-vote-valid${showInvalid ? '' : ' active'}" data-player-id="${pid}" title="De acuerdo${lockTitle}" ${disabledAttr}>✓</button>
@@ -1022,7 +1071,7 @@ function renderValidating(room) {
         </div>
       `;
 
-      if (!tooShort) {
+      if (!locked) {
         const btnValid = card.querySelector('.btn-vote-valid');
         const btnInvalid = card.querySelector('.btn-vote-invalid');
         btnValid.addEventListener('click', () => {
@@ -1118,6 +1167,8 @@ async function processValidationCategory(room) {
   const invalidThreshold = totalPlayers / 2;
 
   const validation = (room.rounds && room.rounds[roundNum] && room.rounds[roundNum].validation && room.rounds[roundNum].validation[safeCat]) || {};
+  // Jugadores que salieron de la pantalla durante el juego: ronda invalidada
+  const cheated = (room.rounds && room.rounds[roundNum] && room.rounds[roundNum].cheated) || {};
 
   // Paso 1: Calcular finalValid por jugador
   const validAnswers = {};
@@ -1127,8 +1178,9 @@ async function processValidationCategory(room) {
     const vData = validation[pid] || { answer: '', invalidVotes: {} };
     const invalidCount = vData.invalidVotes ? Object.keys(vData.invalidVotes).length : 0;
     // Una respuesta válida requiere al menos 2 caracteres (no vacía, no una sola letra)
+    // y que el jugador no haya salido de la pantalla durante la ronda.
     const answerTrimmed = (vData.answer || '').trim();
-    const isValid = invalidCount < invalidThreshold && answerTrimmed.length >= 2;
+    const isValid = invalidCount < invalidThreshold && answerTrimmed.length >= 2 && !cheated[pid];
     updates[`rounds/${roundNum}/validation/${safeCat}/${pid}/finalValid`] = isValid;
     if (isValid) {
       validAnswers[pid] = (vData.answer || '').toLowerCase().trim();
@@ -1504,6 +1556,8 @@ function escapeHtml(text) {
 // INICIALIZACIÓN DE EVENT LISTENERS
 // ─────────────────────────────────────────────
 function initEventListeners() {
+  setupAntiCheat();
+
   const btnCreate = el('btn-create-room');
   if (btnCreate) btnCreate.addEventListener('click', createRoom);
 

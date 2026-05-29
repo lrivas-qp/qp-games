@@ -47,15 +47,22 @@ const FREEZE_DURATION = 5000;
 const SLOW_DURATION = 6000;     // ms que dura el slow
 const MAX_WORDS_ON_SCREEN = 10;
 const LIVES_START = 3;
+const MAX_INVENTORY = 5;            // máximo de comodines apilables en la cajita
+const ENCHANT_CHANCE = 0.15;        // probabilidad de que una palabra venga "encantada" con un comodín
+const MAX_ENCHANTED_ON_SCREEN = 1;  // máximo de palabras encantadas simultáneas
 
-// ── Power-ups (palabras especiales de colores) ────────────────────────────
+// ── Power-ups (comodines) ─────────────────────────────────────────────────
+// Las palabras NORMALES aparecen iluminadas con el color de un comodín. Al
+// escribirlas, el comodín se CAPTURA en la cajita (no se activa). Para usar un
+// comodín guardado, el jugador escribe su palabra clave (word).
 const POWERUP_TYPES = {
-  fire:  { word: 'fuego', color: '#f97316', label: '🔥 ¡FUEGO ARCANO!',    effect: () => applyFire()  },
-  ice:   { word: 'frio',  color: '#38bdf8', label: '❄️ ¡TIEMPO CONGELADO!', effect: () => applyIce()   },
-  slow:  { word: 'lento', color: '#fbbf24', label: '⏳ ¡CÁMARA LENTA!',     effect: () => applySlow()  },
-  heal:  { word: 'cura',  color: '#4ade80', label: '💚 ¡VIDA RECUPERADA!',  effect: () => applyHeal()  },
-  bonus: { word: 'bonus', color: '#e879f9', label: '⭐ ¡PUNTOS EXTRA!',     effect: () => applyBonus() },
+  fire:  { word: 'fuego', icon: '🔥', name: 'Fuego Arcano',   color: '#f97316', label: '🔥 ¡FUEGO ARCANO!',    effect: () => applyFire()  },
+  ice:   { word: 'frio',  icon: '❄️', name: 'Tiempo Congelado', color: '#38bdf8', label: '❄️ ¡TIEMPO CONGELADO!', effect: () => applyIce()   },
+  slow:  { word: 'lento', icon: '⏳', name: 'Cámara Lenta',    color: '#fbbf24', label: '⏳ ¡CÁMARA LENTA!',     effect: () => applySlow()  },
+  heal:  { word: 'cura',  icon: '💚', name: 'Vida Extra',      color: '#4ade80', label: '💚 ¡VIDA RECUPERADA!',  effect: () => applyHeal()  },
+  bonus: { word: 'bonus', icon: '⭐', name: 'Puntos Extra',    color: '#e879f9', label: '⭐ ¡PUNTOS EXTRA!',     effect: () => applyBonus() },
 };
+const POWERUP_WORDS = Object.values(POWERUP_TYPES).map(p => p.word);
 
 // ── Estado del juego ─────────────────────────────────────────────────────
 const state = {
@@ -68,6 +75,7 @@ const state = {
   freezeTimer: null,
   slowTimer: null,
   words: [],
+  inventory: [],          // comodines capturados (array de tipos, máx MAX_INVENTORY)
   typedBuffer: '',
   matchedWordIndex: -1,
   wordsTyped: 0,
@@ -91,6 +99,7 @@ const finalLevel    = document.getElementById('final-level');
 const playerNameInput = document.getElementById('player-name');
 const leaderboardList = document.getElementById('leaderboard-list');
 const spellNotice   = document.getElementById('spell-notice');
+const inventoryBox  = document.getElementById('powerup-inventory');
 
 // ── Utilidades ───────────────────────────────────────────────────────────
 function getGameAreaHeight() { return gameArea.getBoundingClientRect().height; }
@@ -170,17 +179,18 @@ function spawnWord(now) {
   if (now - state.lastSpawnTime < getSpawnInterval()) return;
   state.lastSpawnTime = now;
 
-  // 15% de probabilidad de power-up, máx 1 por tipo en pantalla
-  let wordText, wordType = 'normal';
-  if (Math.random() < 0.15) {
-    const activeTypes = new Set(state.words.filter(w => w.type !== 'normal').map(w => w.type));
-    const available = Object.keys(POWERUP_TYPES).filter(t => !activeTypes.has(t));
-    if (available.length > 0) {
-      wordType = available[Math.floor(Math.random() * available.length)];
-      wordText = POWERUP_TYPES[wordType].word;
-    }
+  // Siempre cae una palabra NORMAL. Con cierta probabilidad viene "encantada"
+  // con un comodín (iluminada con su color). Solo encantamos si hay espacio en
+  // la cajita y no hay demasiadas palabras encantadas ya en pantalla.
+  const wordText = pickWord();
+  let wordType = 'normal';
+  const enchantedOnScreen = state.words.filter(w => w.type !== 'normal').length;
+  if (state.inventory.length < MAX_INVENTORY &&
+      enchantedOnScreen < MAX_ENCHANTED_ON_SCREEN &&
+      Math.random() < ENCHANT_CHANCE) {
+    const types = Object.keys(POWERUP_TYPES);
+    wordType = types[Math.floor(Math.random() * types.length)];
   }
-  if (wordType === 'normal') wordText = pickWord();
 
   const fontSize = getWordFontSize();
   const maxX = Math.max(40, getGameAreaWidth() - wordText.length * fontSize * 0.6 - 40);
@@ -224,7 +234,7 @@ function checkGameOver() {
     if (!wordObj.active) continue;
     if (wordObj.y > areaHeight) {
       toRemove.push(i);
-      if (wordObj.type === 'normal') loseLife(); // solo palabras normales cuestan vida
+      loseLife(); // toda palabra que toca el fondo cuesta una vida (encantada o no)
     }
   }
 
@@ -250,7 +260,25 @@ function handleTyping(key) {
   if (!state.isRunning) return;
   state.typedBuffer += key;
   updateBufferDisplay();
+  // ¿el buffer activa un comodín guardado en la cajita?
+  if (tryActivateStoredPowerup()) return;
   findMatch();
+}
+
+/** Si el buffer coincide exactamente con la palabra clave de un comodín
+ *  guardado, lo activa, lo consume de la cajita y limpia el buffer. */
+function tryActivateStoredPowerup() {
+  const buf = state.typedBuffer;
+  const idx = state.inventory.findIndex(t => POWERUP_TYPES[t].word === buf);
+  if (idx === -1) return false;
+  const type = state.inventory[idx];
+  state.inventory.splice(idx, 1);
+  renderInventory();
+  const pu = POWERUP_TYPES[type];
+  showSpellNotice(pu.label, pu.color);
+  pu.effect();
+  clearBuffer();
+  return true;
 }
 
 /** Busca si el buffer coincide con el inicio de alguna palabra activa */
@@ -296,8 +324,10 @@ function findMatch() {
       destroyWord(bestIdx);
     }
   } else {
-    // Ninguna coincidencia — si llevamos >2 chars sin match, limpiar buffer
-    if (buf.length > 2) {
+    // Ninguna coincidencia con palabras que caen. No limpiar si el buffer es
+    // prefijo de la palabra clave de un comodín guardado (lo está escribiendo).
+    const isPrefixOfStored = state.inventory.some(t => POWERUP_TYPES[t].word.startsWith(buf));
+    if (buf.length > 2 && !isPrefixOfStored) {
       clearBuffer();
     }
   }
@@ -313,23 +343,22 @@ function destroyWord(index) {
   wordObj.el.classList.add('destroying');
   wordObj.el.classList.remove('matched');
 
+  // Puntuación normal (toda palabra escrita suma puntos y progreso)
+  const len = wordObj.text.length;
+  let pts;
+  if (len <= 4)      pts = 10 * state.level;
+  else if (len <= 7) pts = 20 * state.level;
+  else               pts = 30 * state.level;
+  addScore(pts);
+  state.wordsTyped++;
+  updateProgressBar();
+
+  // Si la palabra venía encantada, capturar el comodín en la cajita
   if (wordObj.type && wordObj.type !== 'normal') {
-    // Activar power-up
-    const pu = POWERUP_TYPES[wordObj.type];
-    showSpellNotice(pu.label, pu.color);
-    pu.effect();
-  } else {
-    // Puntuación normal
-    const len = wordObj.text.length;
-    let pts;
-    if (len <= 4)      pts = 10 * state.level;
-    else if (len <= 7) pts = 20 * state.level;
-    else               pts = 30 * state.level;
-    addScore(pts);
-    state.wordsTyped++;
-    updateProgressBar();
-    checkLevelUp();
+    capturePowerup(wordObj.type);
   }
+
+  checkLevelUp();
 
   clearBuffer();
 
@@ -489,6 +518,39 @@ function applyBonus() {
   addScore(50 * state.level);
 }
 
+// ── Cajita de comodines (inventario) ──────────────────────────────────────
+
+/** Guarda un comodín capturado en la cajita (si hay espacio). */
+function capturePowerup(type) {
+  const pu = POWERUP_TYPES[type];
+  if (state.inventory.length >= MAX_INVENTORY) {
+    showSpellNotice('🎒 ¡Cajita llena!', '#94a3b8');
+    return;
+  }
+  state.inventory.push(type);
+  renderInventory();
+  showSpellNotice(`${pu.icon} ¡${pu.name} capturado! Escribe "${pu.word}"`, pu.color);
+}
+
+/** Re-dibuja los 5 slots de la cajita de comodines. */
+function renderInventory() {
+  if (!inventoryBox) return;
+  inventoryBox.innerHTML = '';
+  for (let i = 0; i < MAX_INVENTORY; i++) {
+    const type = state.inventory[i];
+    const slot = document.createElement('div');
+    if (type) {
+      const pu = POWERUP_TYPES[type];
+      slot.className = `pu-slot filled powerup-${type}`;
+      slot.innerHTML = `<span class="pu-icon">${pu.icon}</span><span class="pu-word">${pu.word}</span>`;
+      slot.title = `${pu.name} — escribe "${pu.word}" para activarlo`;
+    } else {
+      slot.className = 'pu-slot empty';
+    }
+    inventoryBox.appendChild(slot);
+  }
+}
+
 function showSpellNotice(text, color) {
   spellNotice.textContent = text;
   spellNotice.style.color = color;
@@ -541,6 +603,7 @@ function initGame() {
   state.freezeTimer = null;
   state.slowTimer = null;
   state.words = [];
+  state.inventory = [];
   state.typedBuffer = '';
   state.matchedWordIndex = -1;
   state.wordsTyped = 0;
@@ -552,6 +615,7 @@ function initGame() {
   updateHUD();
   updateProgressBar();
   updateBufferDisplay();
+  renderInventory();
 
   // Ocultar overlays
   startScreen.classList.remove('active');
