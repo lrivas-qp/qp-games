@@ -21,12 +21,29 @@ Juego clásico de Stop (también conocido como Bachillerato) para jugar en tiemp
 1. Ve a [https://console.firebase.google.com/project/stop-game-4f8e3/database](https://console.firebase.google.com/project/stop-game-4f8e3/database)
 2. Haz click en **"Crear base de datos"**
 3. Selecciona **"Comenzar en modo de prueba"** (test mode) y confirma
-4. Las reglas de seguridad ya estan definidas en `database.rules.json` — aplicalas en el siguiente paso
 
 ### Paso 3: Aplicar reglas de seguridad
 
 1. En la consola de Firebase, ve a **Realtime Database → Reglas**
-2. Borra el contenido actual y pega el contenido del archivo `database.rules.json`
+2. Borra el contenido actual y pega estas reglas:
+
+   ```json
+   {
+     "rules": {
+       "rooms": {
+         "$roomCode": {
+           ".read": true,
+           ".write": true,
+           "players": {
+             "$playerId": {
+               ".validate": "newData.hasChildren(['name', 'isHost', 'connected'])"
+             }
+           }
+         }
+       }
+     }
+   }
+   ```
 3. Haz click en **"Publicar"**
 
 ### Paso 4: Desplegar en GitHub Pages
@@ -102,7 +119,6 @@ stop-game/
 ├── style.css            # Estilos visuales
 ├── app.js               # Logica del juego y sincronizacion con Firebase
 ├── firebase-config.js   # COMPLETAR con tus credenciales de Firebase
-├── database.rules.json  # Reglas de seguridad para Realtime Database
 └── README.md            # Este archivo
 ```
 
@@ -114,5 +130,5 @@ stop-game/
 - **Sin instalacion**: no requiere Node.js, npm ni servidor propio — es HTML/CSS/JS puro
 - **Sincronizacion en tiempo real**: usa Firebase Realtime Database con websockets; los cambios se propagan a todos los jugadores en milisegundos
 - **Capacidad**: soporta 14+ jugadores simultaneos dentro del plan gratuito (Spark) de Firebase, que incluye 1 GB de almacenamiento y 10 GB/mes de transferencia
-- **Seguridad**: las reglas de `database.rules.json` permiten lectura/escritura solo dentro de salas validas, con validacion de estructura de jugadores
+- **Seguridad**: las reglas de Realtime Database (ver Paso 3) permiten lectura/escritura solo dentro de salas validas, con validacion de estructura de jugadores
 - **GitHub Pages**: al ser un sitio estatico, GitHub Pages lo sirve sin costo adicional con HTTPS incluido
