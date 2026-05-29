@@ -107,6 +107,24 @@ function formatTime(seconds) {
 
 function el(id) { return document.getElementById(id); }
 
+// Fuerza que el texto de un input empiece por la letra del turno.
+// Elimina cualquier carácter inicial que no coincida con la letra requerida.
+function enforceLetter(input, requiredLetter) {
+  if (!requiredLetter) return;
+  const letter = requiredLetter.toLowerCase();
+  let v = input.value;
+  while (v.length > 0 && v[0].toLowerCase() !== letter) {
+    v = v.slice(1);
+  }
+  if (v !== input.value) {
+    const wasAtEnd = input.selectionStart === input.value.length;
+    input.value = v;
+    if (wasAtEnd) {
+      input.selectionStart = input.selectionEnd = v.length;
+    }
+  }
+}
+
 // ─────────────────────────────────────────────
 // CREAR SALA
 // ─────────────────────────────────────────────
@@ -321,8 +339,10 @@ function handleRoomUpdate(room) {
         local.lastValidationCategoryIndex = room.state.validationCategoryIndex;
         const valDuration = room.state.validationDuration || room.config.validationDuration || 10;
         startValidationTimer(room.state.validationStartedAt, valDuration, room);
+        // Renderizar solo cuando cambia la categoría. Los votos son un switch local:
+        // ni mi propio voto ni los de otros deben re-renderizar la pantalla.
+        renderValidating(room);
       }
-      renderValidating(room); // siempre re-renderizar para reflejar cambios de votos
       break;
     }
     case 'round-scores': {
@@ -698,6 +718,9 @@ function renderPlaying(room) {
   // Contador de jugadores conectados
   updatePlayingPlayerCount(room);
 
+  // Letra requerida del turno: todo input debe empezar por ella
+  const requiredLetter = (state.currentLetter || '').toUpperCase();
+
   // Crear inputs de categorías (siempre limpiar para rondas nuevas)
   const container = el('game-categories-container');
   if (container) {
@@ -705,9 +728,10 @@ function renderPlaying(room) {
     categories.forEach(cat => {
       const row = document.createElement('div');
       row.className = 'category-row';
+      const ph = requiredLetter ? `Empieza con ${requiredLetter}...` : 'Escribe aquí...';
       row.innerHTML = `
         <span class="category-label">${escapeHtml(cat)}</span>
-        <input class="category-input" type="text" data-category="${escapeHtml(cat)}" placeholder="Escribe aquí..." autocomplete="off">
+        <input class="category-input" type="text" data-category="${escapeHtml(cat)}" placeholder="${escapeHtml(ph)}" autocomplete="off">
       `;
       container.appendChild(row);
     });
@@ -725,6 +749,7 @@ function renderPlaying(room) {
     // Event listeners con debounce
     container.querySelectorAll('.category-input').forEach(input => {
       input.addEventListener('input', () => {
+        enforceLetter(input, requiredLetter);
         checkStopButton();
         const cat = input.dataset.category;
         if (local.answerDebounceTimers[cat]) clearTimeout(local.answerDebounceTimers[cat]);
@@ -910,7 +935,7 @@ async function transitionToValidating() {
   });
 
   const connectedCount = Object.values(players).filter(p => p.connected).length;
-  const validationDuration = Math.max(2, connectedCount * 2);
+  const validationDuration = Math.max(3, connectedCount * 3);
 
   updates['state/phase'] = 'validating';
   updates['state/validationCategoryIndex'] = 0;
@@ -974,22 +999,44 @@ function renderValidating(room) {
       const vData = validation[pid] || { answer: '', invalidVotes: {}, finalValid: null };
       const myVoteInvalid = vData.invalidVotes && vData.invalidVotes[local.playerId];
 
+      // Respuestas vacías o de una sola letra son inválidas por defecto y NO se pueden cambiar
+      const answerTrimmed = (vData.answer || '').trim();
+      const tooShort = answerTrimmed.length < 2;
+      // Estado mostrado: si es demasiado corta → inválida (bloqueada); si no, según mi voto
+      const showInvalid = tooShort ? true : !!myVoteInvalid;
+
       const card = document.createElement('div');
-      card.className = 'answer-card';
+      card.className = `answer-card${tooShort ? ' locked-invalid' : ''}`;
       card.dataset.playerId = pid;
       card.dataset.category = safeCat;
+
+      const disabledAttr = tooShort ? 'disabled' : '';
+      const lockTitle = tooShort ? ' (respuesta inválida: mínimo 2 caracteres)' : '';
 
       card.innerHTML = `
         <span class="answer-player-name">${escapeHtml(player.name)}</span>
         <span class="answer-text">${escapeHtml(vData.answer || '(sin respuesta)')}</span>
         <div class="answer-vote-buttons">
-          <button class="btn-vote-valid${myVoteInvalid ? '' : ' active'}" data-player-id="${pid}" title="De acuerdo">✓</button>
-          <button class="btn-vote-invalid${myVoteInvalid ? ' active' : ''}" data-player-id="${pid}" title="No estoy de acuerdo">✗</button>
+          <button class="btn-vote-valid${showInvalid ? '' : ' active'}" data-player-id="${pid}" title="De acuerdo${lockTitle}" ${disabledAttr}>✓</button>
+          <button class="btn-vote-invalid${showInvalid ? ' active' : ''}" data-player-id="${pid}" title="No estoy de acuerdo${lockTitle}" ${disabledAttr}>✗</button>
         </div>
       `;
 
-      card.querySelector('.btn-vote-valid').addEventListener('click', () => voteValid(pid, safeCat, roundNum));
-      card.querySelector('.btn-vote-invalid').addEventListener('click', () => voteInvalid(pid, safeCat, roundNum));
+      if (!tooShort) {
+        const btnValid = card.querySelector('.btn-vote-valid');
+        const btnInvalid = card.querySelector('.btn-vote-invalid');
+        btnValid.addEventListener('click', () => {
+          // Cambio puramente local: solo este elemento, sin re-renderizar
+          btnValid.classList.add('active');
+          btnInvalid.classList.remove('active');
+          voteValid(pid, safeCat, roundNum);
+        });
+        btnInvalid.addEventListener('click', () => {
+          btnInvalid.classList.add('active');
+          btnValid.classList.remove('active');
+          voteInvalid(pid, safeCat, roundNum);
+        });
+      }
 
       answersContainer.appendChild(card);
     });
@@ -1079,7 +1126,9 @@ async function processValidationCategory(room) {
   Object.entries(players).forEach(([pid]) => {
     const vData = validation[pid] || { answer: '', invalidVotes: {} };
     const invalidCount = vData.invalidVotes ? Object.keys(vData.invalidVotes).length : 0;
-    const isValid = invalidCount < invalidThreshold && (vData.answer || '').trim() !== '';
+    // Una respuesta válida requiere al menos 2 caracteres (no vacía, no una sola letra)
+    const answerTrimmed = (vData.answer || '').trim();
+    const isValid = invalidCount < invalidThreshold && answerTrimmed.length >= 2;
     updates[`rounds/${roundNum}/validation/${safeCat}/${pid}/finalValid`] = isValid;
     if (isValid) {
       validAnswers[pid] = (vData.answer || '').toLowerCase().trim();

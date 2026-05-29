@@ -1033,6 +1033,13 @@ body {
   background: rgba(255, 65, 54, 0.06);
 }
 
+/* Respuesta inválida por defecto (vacía o de una sola letra): no se puede votar */
+.answer-card.locked-invalid {
+  border-color: var(--color-red);
+  background: rgba(255, 65, 54, 0.06);
+  opacity: 0.7;
+}
+
 .answer-player-name {
   font-size: 0.75rem;
   font-weight: 700;
