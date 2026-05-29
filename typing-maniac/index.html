@@ -61,6 +61,28 @@
     </div>
   </div>
 
+  <!-- Pantalla de instrucciones (antes de jugar) -->
+  <div id="instructions-screen" class="overlay">
+    <div class="overlay-card instructions-card">
+      <h2 class="instructions-title">📖 CÓMO JUGAR</h2>
+      <ul class="instructions-list">
+        <li>⌨️ Escribe las palabras que <b>caen</b> antes de que toquen el fondo.</li>
+        <li>❤️ Cada palabra que llega al fondo te cuesta una <b>vida</b> (empiezas con 5).</li>
+        <li>✨ Algunas palabras vienen <b>iluminadas de color</b>: al escribirlas, <b>capturas un comodín</b> en la cajita de la derecha (hasta 5).</li>
+        <li>🔑 Para usar un comodín, escribe su <b>palabra clave</b> → efecto <b>completo</b>.</li>
+        <li>🔢 O escribe el <b>número del slot (1-5)</b> → <b>medio efecto</b> (mitad de palabras, tiempo o puntos).</li>
+      </ul>
+      <table class="instructions-powerups">
+        <tr><td>🔥</td><td><b>fuego</b></td><td>Quema las palabras en pantalla <span class="half-note">(½: mitad inferior)</span></td></tr>
+        <tr><td>❄️</td><td><b>frio</b></td><td>Congela la caída <span class="half-note">(½: la mitad del tiempo)</span></td></tr>
+        <tr><td>⏳</td><td><b>lento</b></td><td>Cámara lenta <span class="half-note">(½: la mitad del tiempo)</span></td></tr>
+        <tr><td>⭐</td><td><b>bonus</b></td><td>Puntos extra <span class="half-note">(½: la mitad de puntos)</span></td></tr>
+        <tr><td>💚</td><td><b>cura</b></td><td>Recupera una vida</td></tr>
+      </table>
+      <button id="btn-understood" class="btn btn-primary">✅ ¡ENTENDIDO, A JUGAR!</button>
+    </div>
+  </div>
+
   <!-- Pantalla de Game Over -->
   <div id="gameover-screen" class="overlay">
     <div class="overlay-card">
@@ -92,6 +114,6 @@
   <!-- Notificación de hechizo -->
   <div id="spell-notice" class="spell-notice hidden"></div>
 
-  <script type="module" src="app.js?v=4"></script>
+  <script type="module" src="app.js?v=6"></script>
 </body>
 </html>

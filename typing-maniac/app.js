@@ -46,7 +46,7 @@ const WORDS_PER_LEVEL = 3;      // palabras extra por cada nivel adicional
 const FREEZE_DURATION = 5000;
 const SLOW_DURATION = 6000;     // ms que dura el slow
 const MAX_WORDS_ON_SCREEN = 10;
-const LIVES_START = 3;
+const LIVES_START = 5;
 const MAX_INVENTORY = 5;            // máximo de comodines apilables en la cajita
 const ENCHANT_CHANCE = 0.15;        // probabilidad de que una palabra venga "encantada" con un comodín
 const MAX_ENCHANTED_ON_SCREEN = 1;  // máximo de palabras encantadas simultáneas
@@ -56,11 +56,11 @@ const MAX_ENCHANTED_ON_SCREEN = 1;  // máximo de palabras encantadas simultáne
 // escribirlas, el comodín se CAPTURA en la cajita (no se activa). Para usar un
 // comodín guardado, el jugador escribe su palabra clave (word).
 const POWERUP_TYPES = {
-  fire:  { word: 'fuego', icon: '🔥', name: 'Fuego Arcano',   color: '#f97316', label: '🔥 ¡FUEGO ARCANO!',    effect: () => applyFire()  },
-  ice:   { word: 'frio',  icon: '❄️', name: 'Tiempo Congelado', color: '#38bdf8', label: '❄️ ¡TIEMPO CONGELADO!', effect: () => applyIce()   },
-  slow:  { word: 'lento', icon: '⏳', name: 'Cámara Lenta',    color: '#fbbf24', label: '⏳ ¡CÁMARA LENTA!',     effect: () => applySlow()  },
-  heal:  { word: 'cura',  icon: '💚', name: 'Vida Extra',      color: '#4ade80', label: '💚 ¡VIDA RECUPERADA!',  effect: () => applyHeal()  },
-  bonus: { word: 'bonus', icon: '⭐', name: 'Puntos Extra',    color: '#e879f9', label: '⭐ ¡PUNTOS EXTRA!',     effect: () => applyBonus() },
+  fire:  { word: 'fuego', icon: '🔥', name: 'Fuego Arcano',   color: '#f97316', label: '🔥 ¡FUEGO ARCANO!',    effect: (half) => applyFire(half)  },
+  ice:   { word: 'frio',  icon: '❄️', name: 'Tiempo Congelado', color: '#38bdf8', label: '❄️ ¡TIEMPO CONGELADO!', effect: (half) => applyIce(half)   },
+  slow:  { word: 'lento', icon: '⏳', name: 'Cámara Lenta',    color: '#fbbf24', label: '⏳ ¡CÁMARA LENTA!',     effect: (half) => applySlow(half)  },
+  heal:  { word: 'cura',  icon: '💚', name: 'Vida Extra',      color: '#4ade80', label: '💚 ¡VIDA RECUPERADA!',  effect: (half) => applyHeal(half)  },
+  bonus: { word: 'bonus', icon: '⭐', name: 'Puntos Extra',    color: '#e879f9', label: '⭐ ¡PUNTOS EXTRA!',     effect: (half) => applyBonus(half) },
 };
 const POWERUP_WORDS = Object.values(POWERUP_TYPES).map(p => p.word);
 
@@ -276,9 +276,23 @@ function tryActivateStoredPowerup() {
   renderInventory();
   const pu = POWERUP_TYPES[type];
   showSpellNotice(pu.label, pu.color);
-  pu.effect();
+  pu.effect(false); // palabra clave = efecto completo
   clearBuffer();
   return true;
+}
+
+/** Activa el comodín del slot N (1-based) con MEDIO efecto. */
+function activateSlotByNumber(n) {
+  if (!state.isRunning) return;
+  const idx = n - 1;
+  if (idx < 0 || idx >= state.inventory.length) return;
+  const type = state.inventory[idx];
+  state.inventory.splice(idx, 1);
+  renderInventory();
+  const pu = POWERUP_TYPES[type];
+  showSpellNotice(`${pu.icon} ${pu.name} ½`, pu.color);
+  pu.effect(true); // número de slot = medio efecto
+  clearBuffer();
 }
 
 /** Busca si el buffer coincide con el inicio de alguna palabra activa */
@@ -465,11 +479,15 @@ function updateHUD() {
 
 // ── Efectos de Power-ups ─────────────────────────────────────────────────
 
-function applyFire() {
-  const toDestroy = [...state.words.filter(w => w.active && w.type === 'normal')];
-  if (toDestroy.length === 0) return;
+// Cada efecto acepta `half`: si es true (activado por número de slot), aplica
+// la mitad del efecto (mitad de palabras / tiempo / puntos).
+function applyFire(half = false) {
+  // Palabras normales ordenadas de abajo (mayor y) hacia arriba
+  let pool = state.words.filter(w => w.active && w.type === 'normal').sort((a, b) => b.y - a.y);
+  if (half) pool = pool.slice(0, Math.ceil(pool.length / 2)); // mitad inferior
+  if (pool.length === 0) return;
   let totalPts = 0;
-  for (const w of toDestroy) {
+  for (const w of pool) {
     w.active = false;
     w.el.classList.add('destroying');
     const len = w.text.length;
@@ -478,44 +496,47 @@ function applyFire() {
     else totalPts += 30 * state.level;
     setTimeout(() => { if (w.el.parentNode) w.el.remove(); }, 320);
   }
-  state.words = state.words.filter(w => !toDestroy.includes(w));
-  state.wordsTyped += toDestroy.length; // el fuego cuenta hacia la barra de progreso
+  state.words = state.words.filter(w => !pool.includes(w));
+  state.wordsTyped += pool.length; // el fuego cuenta hacia la barra de progreso
   state.lastSpawnTime = state.lastFrameTime + 1500;
   addScore(totalPts);
   const notice = document.getElementById('spell-notice');
-  if (notice) notice.textContent = `🔥 ¡FUEGO ARCANO! +${totalPts} pts`;
+  if (notice) notice.textContent = `🔥 ¡FUEGO ARCANO${half ? ' ½' : ''}! +${totalPts} pts`;
   updateHUD();
   checkLevelUp();
 }
 
-function applyIce() {
+function applyIce(half = false) {
   if (state.isFrozen) return;
   state.isFrozen = true;
   for (const w of state.words) { if (w.active) w.el.classList.add('frozen'); }
   if (state.freezeTimer) clearTimeout(state.freezeTimer);
+  const duration = half ? FREEZE_DURATION / 2 : FREEZE_DURATION;
   state.freezeTimer = setTimeout(() => {
     state.isFrozen = false;
     for (const w of state.words) w.el.classList.remove('frozen');
     state.lastSpawnTime = state.lastFrameTime + 1500; // pausa spawn al descongelar
-  }, FREEZE_DURATION);
+  }, duration);
 }
 
-function applySlow() {
+function applySlow(half = false) {
   state.isSlowed = true;
   if (state.slowTimer) clearTimeout(state.slowTimer);
+  const duration = half ? SLOW_DURATION / 2 : SLOW_DURATION;
   state.slowTimer = setTimeout(() => {
     state.isSlowed = false;
     state.lastSpawnTime = state.lastFrameTime + 1500; // pausa spawn al terminar slow
-  }, SLOW_DURATION);
+  }, duration);
 }
 
 function applyHeal() {
+  // Una vida no se puede partir a la mitad: siempre recupera 1 vida
   state.lives = Math.min(LIVES_START + 2, state.lives + 1);
   updateHUD();
 }
 
-function applyBonus() {
-  addScore(50 * state.level);
+function applyBonus(half = false) {
+  addScore((half ? 25 : 50) * state.level);
 }
 
 // ── Cajita de comodines (inventario) ──────────────────────────────────────
@@ -542,10 +563,11 @@ function renderInventory() {
     if (type) {
       const pu = POWERUP_TYPES[type];
       slot.className = `pu-slot filled powerup-${type}`;
-      slot.innerHTML = `<span class="pu-icon">${pu.icon}</span><span class="pu-word">${pu.word}</span>`;
-      slot.title = `${pu.name} — escribe "${pu.word}" para activarlo`;
+      slot.innerHTML = `<span class="pu-num">${i + 1}</span><span class="pu-icon">${pu.icon}</span><span class="pu-word">${pu.word}</span>`;
+      slot.title = `${pu.name} — escribe "${pu.word}" (efecto completo) o "${i + 1}" (½ efecto)`;
     } else {
       slot.className = 'pu-slot empty';
+      slot.innerHTML = `<span class="pu-num">${i + 1}</span>`;
     }
     inventoryBox.appendChild(slot);
   }
@@ -620,6 +642,7 @@ function initGame() {
   // Ocultar overlays
   startScreen.classList.remove('active');
   gameoverScreen.classList.remove('active');
+  document.getElementById('instructions-screen').classList.remove('active');
   document.getElementById('levelup-overlay').classList.remove('active');
   spellNotice.classList.add('hidden');
 
@@ -672,6 +695,15 @@ document.addEventListener('keydown', (e) => {
     }
     return;
   }
+  // Teclas 1-5: activar el comodín de ese slot con MEDIO efecto
+  if (/^[1-9]$/.test(e.key)) {
+    const n = parseInt(e.key, 10);
+    if (n >= 1 && n <= MAX_INVENTORY) {
+      e.preventDefault();
+      activateSlotByNumber(n);
+      return;
+    }
+  }
   if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
     e.preventDefault();
     handleTyping(e.key.toLowerCase());
@@ -680,7 +712,17 @@ document.addEventListener('keydown', (e) => {
 
 // ── Botones UI ───────────────────────────────────────────────────────────
 
-document.getElementById('btn-start').addEventListener('click', initGame);
+// "Iniciar juego" muestra primero las instrucciones; el juego arranca al
+// confirmar que se entendieron las reglas.
+document.getElementById('btn-start').addEventListener('click', () => {
+  startScreen.classList.remove('active');
+  document.getElementById('instructions-screen').classList.add('active');
+});
+
+document.getElementById('btn-understood').addEventListener('click', () => {
+  document.getElementById('instructions-screen').classList.remove('active');
+  initGame();
+});
 
 document.getElementById('btn-play-again').addEventListener('click', () => {
   gameoverScreen.classList.remove('active');
