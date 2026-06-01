@@ -28,6 +28,14 @@ qp-games/
 
 Todos los juegos comparten el mismo proyecto de Firebase Realtime Database. Las reglas de seguridad de **todos** los juegos están versionadas en [`firebase-rules.json`](./firebase-rules.json). Al agregar un juego que use la base de datos, añade su nodo a ese archivo y publícalo en la consola (Realtime Database → Reglas).
 
+### Limpieza automática de salas (STOP!)
+
+Las salas de STOP! tienen un `expiresAt` (4 h). Un workflow programado las elimina de la base para no acumular salas viejas:
+
+- **Workflow:** [`.github/workflows/cleanup-rooms.yml`](./.github/workflows/cleanup-rooms.yml) — corre cada 6 horas (y se puede lanzar a mano con opción *dry-run*).
+- **Script:** [`.github/scripts/cleanup-expired-rooms.mjs`](./.github/scripts/cleanup-expired-rooms.mjs) — usa la REST API de RTDB (sin credenciales) para borrar las salas vencidas.
+- Requiere permiso de lectura a nivel de `rooms` en las reglas (ya incluido en `firebase-rules.json`).
+
 ## Despliegue
 
 El repositorio se publica automáticamente en GitHub Pages mediante GitHub Actions en cada push a `main`. La raíz del sitio sirve el portal; cada juego es accesible en su subruta:
