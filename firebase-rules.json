@@ -1,0 +1,27 @@
+{
+  "rules": {
+    "rooms": {
+      "$roomCode": {
+        ".read": true,
+        ".write": true,
+        "players": {
+          "$playerId": {
+            ".validate": "newData.hasChildren(['name', 'isHost', 'connected'])"
+          }
+        }
+      }
+    },
+    "typing-maniac": {
+      "rankings": {
+        ".read": true,
+        ".write": true
+      }
+    },
+    "snake": {
+      "rankings": {
+        ".read": true,
+        ".write": true
+      }
+    }
+  }
+}
