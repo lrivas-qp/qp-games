@@ -876,6 +876,13 @@ body {
   font-weight: 700;
 }
 
+.back-to-portal {
+  align-self: flex-start;
+  display: inline-block;
+  text-decoration: none;
+  margin-bottom: 10px;
+}
+
 /* Categories container */
 .categories-container {
   display: flex;

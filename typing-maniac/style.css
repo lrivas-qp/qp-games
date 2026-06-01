@@ -362,6 +362,8 @@ body {
 }
 .btn-secondary:hover { border-color: var(--primary); color: var(--text); }
 
+a.btn { display: block; text-decoration: none; text-align: center; }
+
 /* ── Game Over ───────────────────────────────── */
 .gameover-title { font-size: clamp(20px, 4vw, 28px); color: var(--danger); text-shadow: 0 0 20px #ef444488; }
 
