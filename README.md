@@ -1,6 +1,6 @@
 # 🎮 Juegos QP
 
-Monorepo con la colección de juegos web de QP. Cada juego vive en su propia carpeta y es completamente autónomo (HTML/CSS/JS + Firebase). Una página central (`index.html`) actúa como portal de bienvenida con acceso a cada juego.
+Monorepo con la colección de juegos web de QP. Cada juego vive en su propia carpeta y es autónomo (HTML/CSS/JS). STOP!, Typing Maniac y Snake usan Firebase; MemoryPlan guarda el ranking en el equipo, sin internet. Una página central (`index.html`) actúa como portal de bienvenida con acceso a cada juego.
 
 **🔗 En vivo:** https://lrivas-qp.github.io/qp-games/
 
@@ -11,6 +11,7 @@ Monorepo con la colección de juegos web de QP. Cada juego vive en su propia car
 | 🛑 **STOP!** | [`stop-game/`](./stop-game/) | El clásico Stop / Tutti Frutti multijugador en tiempo real. |
 | ⌨️ **Typing Maniac** | [`typing-maniac/`](./typing-maniac/) | Escribe las palabras que caen antes de que lleguen al fondo. |
 | 🐍 **Snake** | [`snake/`](./snake/) | La culebrita clásica: come, crece y no choques. Con ranking online. |
+| 🧠 **MemoryPlan** | [`memory-plan/`](./memory-plan/) | Memoria para tótem 1080×1920. Ranking local, sin internet. |
 
 ## Estructura
 
@@ -21,7 +22,8 @@ qp-games/
 ├── .github/workflows/      # Despliegue unificado a GitHub Pages
 ├── stop-game/              # Juego STOP! (autónomo)
 ├── typing-maniac/          # Juego Typing Maniac (autónomo)
-└── snake/                  # Juego Snake (autónomo)
+├── snake/                  # Juego Snake (autónomo)
+└── memory-plan/            # Juego MemoryPlan (autónomo, ranking local)
 ```
 
 ## Backend (Firebase)
@@ -44,6 +46,7 @@ El repositorio se publica automáticamente en GitHub Pages mediante GitHub Actio
 - STOP!: `/qp-games/stop-game/`
 - Typing Maniac: `/qp-games/typing-maniac/`
 - Snake: `/qp-games/snake/`
+- MemoryPlan: `/qp-games/memory-plan/`
 
 ## Agregar un juego nuevo
 

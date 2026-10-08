@@ -2,11 +2,27 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Snake</title>
+  <script>
+    /* Misma regla que applyTouchMode() en app.js: cruceta en táctil o ?touch=1 */
+    (function () {
+      var param = new URLSearchParams(location.search).get('touch');
+      var on;
+      if (param === '1' || param === 'true') on = true;
+      else if (param === '0' || param === 'false') on = false;
+      else {
+        var coarse = window.matchMedia('(pointer: coarse)').matches;
+        var noHover = window.matchMedia('(hover: none)').matches;
+        var points = (navigator.maxTouchPoints || 0) > 0;
+        on = coarse || noHover || points;
+      }
+      document.documentElement.classList.add(on ? 'touch-on' : 'touch-off');
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐍</text></svg>">
 </head>
 <body>
@@ -31,13 +47,13 @@
     <canvas id="board"></canvas>
   </div>
 
-  <!-- Controles táctiles (móvil) -->
-  <div id="touch-controls" aria-hidden="true">
-    <button class="dpad-btn" data-dir="up">▲</button>
-    <div class="dpad-row">
-      <button class="dpad-btn" data-dir="left">◀</button>
-      <button class="dpad-btn" data-dir="down">▼</button>
-      <button class="dpad-btn" data-dir="right">▶</button>
+  <!-- Cruceta táctil (móvil y tótem). Visible con puntero grueso o ?touch=1 -->
+  <div id="touch-controls" role="group" aria-label="Dirección de la serpiente" aria-hidden="true">
+    <div class="dpad">
+      <button type="button" class="dpad-btn dpad-up" data-dir="up" aria-label="Arriba">▲</button>
+      <button type="button" class="dpad-btn dpad-left" data-dir="left" aria-label="Izquierda">◀</button>
+      <button type="button" class="dpad-btn dpad-right" data-dir="right" aria-label="Derecha">▶</button>
+      <button type="button" class="dpad-btn dpad-down" data-dir="down" aria-label="Abajo">▼</button>
     </div>
   </div>
 
@@ -57,7 +73,7 @@
       <button id="btn-start" class="btn btn-primary">▶ INICIAR JUEGO</button>
       <a href="../" class="btn btn-secondary">🎮 Volver a Juegos QP</a>
       <p class="controls-hint">
-        Flechas o WASD para moverte · En móvil usa los botones · No choques contigo ni con los bordes
+        Flechas o WASD · En táctil usa la cruceta o desliza el dedo · No choques contigo ni con los bordes
       </p>
     </div>
   </div>
@@ -85,6 +101,6 @@
     <div class="countdown-num" id="countdown-num">3</div>
   </div>
 
-  <script type="module" src="app.js?v=1"></script>
+  <script type="module" src="app.js?v=2"></script>
 </body>
 </html>

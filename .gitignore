@@ -21,3 +21,9 @@ desktop.ini
 
 # Logs
 *.log
+
+# Notas internas (no se suben al repo)
+IDEAS-JUEGOS.md
+
+# Referencias locales de la maqueta
+.figma-ref/

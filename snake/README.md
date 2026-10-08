@@ -47,10 +47,22 @@ Disponible en: **https://lrivas-qp.github.io/qp-games/snake/**
 ## Como jugar
 
 - **Objetivo**: come la comida roja para crecer y sumar puntos. Evita chocar con los bordes o con tu propio cuerpo.
-- **Controles**: flechas del teclado o **WASD**. En movil, usa los botones de direccion o desliza el dedo (swipe) sobre el tablero.
+- **Controles**: flechas del teclado o **WASD**. En pantalla tactil, usa la cruceta o desliza el dedo (swipe) sobre el tablero. No se puede girar 180 grados de un golpe.
 - **Velocidad**: cada pocas comidas la serpiente acelera (sube el indicador SPEED).
 - **Puntuacion**: +10 puntos por comida. Al perder puedes guardar tu puntuacion con tu nombre y entrar al **Top 10** global.
 - Tu mejor marca local se guarda en el indicador **BEST**.
+
+---
+
+## Uso en totem (pantalla tactil)
+
+Pensado para un totem vertical (tipico **1080x1920**) y tambien para escritorio y movil. El tablero queda arriba y la cruceta abajo, visible sin hacer scroll.
+
+- La cruceta aparece sola si el navegador reporta puntero grueso (`pointer: coarse`), sin hover (`hover: none`) o puntos de contacto (`navigator.maxTouchPoints > 0`).
+- Algunos totems informan un puntero fino y la cruceta no sale. Forzala con el parametro **`?touch=1`**:
+  `https://lrivas-qp.github.io/qp-games/snake/?touch=1`
+- Para esconderla (PC con pantalla tactil que se juega con teclado): **`?touch=0`**.
+- Cada tecla de la cruceta es grande (unos 150–180 px en el totem). Tambien siguen valiendo las flechas, WASD y el swipe sobre el tablero.
 
 ---
 

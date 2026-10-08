@@ -15,18 +15,30 @@
   --hud-bg: rgba(3, 10, 8, 0.92);
   --font-game: 'Press Start 2P', monospace;
   --font-words: 'VT323', monospace;
+  --dpad-size: clamp(68px, 11vh, 92px);
+  --dpad-gap: 10px;
+}
+
+html {
+  height: 100%;
+  overflow: hidden;
 }
 
 body {
   font-family: var(--font-game);
   background: radial-gradient(ellipse at top, #08231a 0%, var(--bg-to) 60%);
-  min-height: 100vh;
+  height: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
   color: var(--text);
   user-select: none;
+  -webkit-user-select: none;
   display: flex;
   flex-direction: column;
   align-items: center;
   overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: manipulation;
 }
 
 /* ── HUD ─────────────────────────────────────── */
@@ -58,39 +70,109 @@ body {
   justify-content: center;
   padding: 16px;
   min-height: 0;
+  touch-action: none;
 }
 #board {
   border: 2px solid var(--card-border);
   border-radius: 10px;
   box-shadow: 0 0 40px rgba(74, 222, 128, 0.15);
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 /* ── Controles táctiles ──────────────────────── */
 #touch-controls {
   display: none;
-  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  gap: 8px;
-  padding: 10px 0 18px;
+  width: 100%;
+  padding: 6px 12px calc(14px + env(safe-area-inset-bottom, 0px));
   flex-shrink: 0;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
-.dpad-row { display: flex; gap: 8px; }
-.dpad-btn {
-  width: 60px;
-  height: 48px;
-  font-size: 18px;
-  color: var(--green);
-  background: rgba(74, 222, 128, 0.08);
-  border: 1.5px solid var(--card-border);
-  border-radius: 10px;
-  cursor: pointer;
-}
-.dpad-btn:active { background: rgba(74, 222, 128, 0.25); }
+html.touch-on #touch-controls { display: flex; }
+html.touch-off #touch-controls { display: none; }
 
-/* En dispositivos táctiles mostramos el d-pad */
-@media (hover: none) and (pointer: coarse) {
-  #touch-controls { display: flex; }
+/* Puntero grueso o sin hover: cruceta aunque el script aún no haya corrido */
+@media (pointer: coarse), (hover: none) {
+  html:not(.touch-off) #touch-controls { display: flex; }
+}
+
+.dpad {
+  display: grid;
+  grid-template-columns: repeat(3, var(--dpad-size));
+  grid-template-rows: repeat(3, var(--dpad-size));
+  grid-template-areas:
+    ".    up   ."
+    "left .    right"
+    ".    down .";
+  gap: var(--dpad-gap);
+  touch-action: none;
+}
+.dpad-up { grid-area: up; }
+.dpad-left { grid-area: left; }
+.dpad-right { grid-area: right; }
+.dpad-down { grid-area: down; }
+
+.dpad-btn {
+  width: var(--dpad-size);
+  height: var(--dpad-size);
+  font-family: "Segoe UI Symbol", "Apple Symbols", sans-serif;
+  font-size: calc(var(--dpad-size) * 0.4);
+  line-height: 1;
+  color: var(--green);
+  background: rgba(74, 222, 128, 0.1);
+  border: 3px solid var(--card-border);
+  border-radius: calc(var(--dpad-size) * 0.18);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+}
+.dpad-btn:focus { outline: none; }
+.dpad-btn:focus-visible {
+  outline: 3px solid var(--green);
+  outline-offset: 3px;
+}
+.dpad-btn.is-pressed,
+.dpad-btn:active {
+  background: rgba(74, 222, 128, 0.4);
+  color: #ecfdf5;
+  border-color: var(--green);
+  transform: scale(0.94);
+  box-shadow: 0 0 28px rgba(74, 222, 128, 0.55), inset 0 0 16px rgba(74, 222, 128, 0.28);
+}
+
+/* Móvil apaisado: cruceta más chica para que el tablero siga visible */
+@media (max-height: 520px) {
+  :root {
+    --dpad-size: 52px;
+    --dpad-gap: 6px;
+  }
+  #touch-controls { padding: 4px 8px 8px; }
+}
+
+/* Tótem / tablet vertical: botones grandes, fáciles de pulsar */
+@media (min-width: 600px) and (min-height: 900px) {
+  :root {
+    --dpad-size: clamp(150px, 14vh, 180px);
+    --dpad-gap: 18px;
+  }
+  #touch-controls {
+    padding: 10px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* ── Overlays ────────────────────────────────── */
@@ -98,14 +180,19 @@ body {
   position: fixed;
   inset: 0;
   display: none;
-  align-items: center;
-  justify-content: center;
   background: rgba(3, 8, 6, 0.92);
   backdrop-filter: blur(6px);
   z-index: 200;
   padding: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
-.overlay.active { display: flex; }
+.overlay.active {
+  display: flex;
+  align-items: safe center;
+  justify-content: center;
+}
 
 .overlay-card {
   background: linear-gradient(145deg, rgba(10,28,20,0.96), rgba(5,14,10,0.96));
@@ -113,6 +200,8 @@ body {
   border-radius: 16px;
   padding: 32px 36px;
   width: min(460px, 94vw);
+  margin: auto;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -172,6 +261,8 @@ body {
   letter-spacing: 1px;
   transition: transform 0.15s, box-shadow 0.15s;
   width: 100%;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 .btn:hover { transform: translateY(-2px); }
 .btn:active { transform: translateY(0); }
@@ -207,12 +298,16 @@ a.btn { display: block; text-decoration: none; text-align: center; }
   font-family: var(--font-words);
   font-size: 22px;
   padding: 10px 16px;
+  min-height: 48px;
   background: rgba(74,222,128,0.1);
   border: 1px solid var(--card-border);
   border-radius: 8px;
   color: var(--text);
   outline: none;
   width: 100%;
+  user-select: text;
+  -webkit-user-select: text;
+  touch-action: manipulation;
 }
 .name-entry input:focus { border-color: var(--green); box-shadow: 0 0 10px rgba(74,222,128,0.3); }
 .controls-hint { font-size: 8px; color: var(--text-muted); letter-spacing: 1px; line-height: 1.6; text-align: center; }
@@ -234,3 +329,44 @@ a.btn { display: block; text-decoration: none; text-align: center; }
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 2px; }
+
+html.touch-on .btn { min-height: 52px; }
+
+/* ── Tótem: tablero más grande y botones de overlay cómodos ─ */
+@media (min-width: 600px) and (min-height: 900px) {
+  html.touch-on #hud,
+  html.touch-on #board-wrap {
+    max-width: min(96vw, 980px);
+  }
+  html.touch-on #hud { height: 72px; }
+  html.touch-on .hud-label { font-size: 10px; }
+  html.touch-on #score-display,
+  html.touch-on #best-display,
+  html.touch-on #speed-display { font-size: 26px; }
+  html.touch-on .overlay-card {
+    width: min(640px, 92vw);
+    padding: 40px 44px;
+  }
+  html.touch-on .btn {
+    min-height: 72px;
+    font-size: 14px;
+    padding: 18px 28px;
+  }
+  html.touch-on .name-entry input {
+    min-height: 72px;
+    font-size: 32px;
+    padding: 14px 18px;
+  }
+  html.touch-on .controls-hint { font-size: 11px; line-height: 1.8; }
+}
+
+/* En táctil el :hover queda pegado; el feedback es al pulsar */
+@media (hover: none), (pointer: coarse) {
+  .btn:hover { transform: none; }
+  .btn-primary:hover { box-shadow: 0 4px 20px rgba(34,197,94,0.4); }
+  .btn-secondary:hover { border-color: rgba(74,222,128,0.3); color: var(--text-muted); }
+}
+html.touch-on .btn:hover { transform: none; }
+html.touch-on .btn-primary:hover { box-shadow: 0 4px 20px rgba(34,197,94,0.4); }
+html.touch-on .btn-secondary:hover { border-color: rgba(74,222,128,0.3); color: var(--text-muted); }
+html.touch-on .btn:active { transform: scale(0.98); }

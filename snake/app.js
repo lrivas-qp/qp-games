@@ -105,31 +105,97 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// Controles táctiles (d-pad)
+// ── Cruceta y swipe ───────────────────────────────────────────────────────
+const DIR_MAP = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+const touchControls = document.getElementById('touch-controls');
+
+/** null = automático; true/false = ?touch=1 / ?touch=0 */
+function touchOverride() {
+  const param = new URLSearchParams(location.search).get('touch');
+  if (param === '1' || param === 'true') return true;
+  if (param === '0' || param === 'false') return false;
+  return null;
+}
+
+function wantsTouchControls() {
+  const override = touchOverride();
+  if (override !== null) return override;
+  const coarse = window.matchMedia('(pointer: coarse)').matches;
+  const noHover = window.matchMedia('(hover: none)').matches;
+  const points = (navigator.maxTouchPoints || 0) > 0;
+  return coarse || noHover || points;
+}
+
+function applyTouchMode() {
+  const on = wantsTouchControls();
+  document.documentElement.classList.toggle('touch-on', on);
+  document.documentElement.classList.toggle('touch-off', !on);
+  if (touchControls) touchControls.setAttribute('aria-hidden', on ? 'false' : 'true');
+}
+
+function blockGesture(e) {
+  e.preventDefault();
+}
+
 document.querySelectorAll('.dpad-btn').forEach(btn => {
-  const map = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
-  const d = map[btn.dataset.dir];
-  const handler = (e) => { e.preventDefault(); setDirection(d[0], d[1]); };
-  btn.addEventListener('click', handler);
-  btn.addEventListener('touchstart', handler, { passive: false });
+  const d = DIR_MAP[btn.dataset.dir];
+  if (!d) return;
+
+  btn.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    try { btn.setPointerCapture(e.pointerId); } catch (_) { /* puntero ya liberado */ }
+    e.preventDefault();
+    btn.classList.add('is-pressed');
+    setDirection(d[0], d[1]);
+  });
+
+  const release = () => btn.classList.remove('is-pressed');
+  btn.addEventListener('pointerup', release);
+  btn.addEventListener('pointercancel', release);
+  btn.addEventListener('contextmenu', blockGesture);
 });
 
-// Swipe sobre el tablero
-let touchStart = null;
-canvas.addEventListener('touchstart', (e) => {
-  const t = e.changedTouches[0];
-  touchStart = { x: t.clientX, y: t.clientY };
-}, { passive: true });
-canvas.addEventListener('touchend', (e) => {
-  if (!touchStart) return;
-  const t = e.changedTouches[0];
-  const dx = t.clientX - touchStart.x;
-  const dy = t.clientY - touchStart.y;
+if (touchControls) {
+  touchControls.addEventListener('contextmenu', blockGesture);
+  touchControls.addEventListener('touchmove', blockGesture, { passive: false });
+}
+
+// Swipe sobre el tablero (dedo o lápiz). El ratón sigue en el teclado.
+let swipeOrigin = null;
+
+function applySwipe(x, y) {
+  if (!swipeOrigin) return;
+  const dx = x - swipeOrigin.x;
+  const dy = y - swipeOrigin.y;
+  swipeOrigin = null;
   if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
   if (Math.abs(dx) > Math.abs(dy)) setDirection(dx > 0 ? 1 : -1, 0);
   else setDirection(0, dy > 0 ? 1 : -1);
-  touchStart = null;
-}, { passive: true });
+}
+
+canvas.addEventListener('contextmenu', blockGesture);
+canvas.addEventListener('touchmove', blockGesture, { passive: false });
+
+if (window.PointerEvent) {
+  canvas.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse') return;
+    swipeOrigin = { x: e.clientX, y: e.clientY };
+  });
+  canvas.addEventListener('pointerup', (e) => {
+    if (e.pointerType === 'mouse') return;
+    applySwipe(e.clientX, e.clientY);
+  });
+  canvas.addEventListener('pointercancel', () => { swipeOrigin = null; });
+} else {
+  canvas.addEventListener('touchstart', (e) => {
+    const t = e.changedTouches[0];
+    swipeOrigin = { x: t.clientX, y: t.clientY };
+  }, { passive: true });
+  canvas.addEventListener('touchend', (e) => {
+    const t = e.changedTouches[0];
+    applySwipe(t.clientX, t.clientY);
+  }, { passive: true });
+}
 
 // ── Game loop ─────────────────────────────────────────────────────────────
 function loop(now) {
@@ -389,6 +455,17 @@ function loadLeaderboard() {
 
 // ── Arranque ──────────────────────────────────────────────────────────────
 state.best = parseInt(localStorage.getItem('snake-best') || '0', 10) || 0;
+
+if (touchOverride() === null) {
+  const refreshTouch = () => {
+    applyTouchMode();
+    resizeCanvas();
+  };
+  window.matchMedia('(pointer: coarse)').addEventListener('change', refreshTouch);
+  window.matchMedia('(hover: none)').addEventListener('change', refreshTouch);
+}
+
+applyTouchMode();
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 updateHUD();
