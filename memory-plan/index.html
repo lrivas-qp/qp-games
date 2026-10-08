@@ -17,7 +17,6 @@
           <img src="assets/lupa-blanca.svg" alt="" width="46" height="46">
           <span class="brand-name"><span class="que">Que</span><span class="plan">Plan.cl</span></span>
         </p>
-        <a class="pill" href="#ranking">VER RANKING</a>
       </header>
 
       <div class="hero">
@@ -36,15 +35,16 @@
           </div>
           <div class="clock-rule"></div>
         </div>
-
-        <div class="toolbar">
-          <p id="pairs" class="pairs" aria-live="polite">0 DE 8 PAREJAS</p>
-          <button id="btn-restart" class="restart" type="button">REINICIAR</button>
-        </div>
       </div>
 
       <div class="board-wrap">
         <div id="board" class="board"></div>
+      </div>
+
+      <div class="controls">
+        <p id="pairs" class="pairs" aria-live="polite">0 DE 8 PAREJAS</p>
+        <a class="pill" href="#ranking">VER RANKING</a>
+        <button id="btn-restart" class="restart" type="button">REINICIAR</button>
       </div>
     </div>
   </section>
@@ -57,15 +57,15 @@
           <h2 id="rank-heading">Los más rápidos</h2>
           <p class="rank-lead">Completa todas las parejas en el menor tiempo posible.</p>
         </div>
-        <p class="live"><i aria-hidden="true"></i>EN VIVO</p>
+        <p id="live-pill" class="live"><i aria-hidden="true"></i><span id="live-label">EN VIVO</span></p>
       </div>
       <div class="rank-card">
-        <ol id="rank-list" class="rank-list"></ol>
+        <ol id="rank-list" class="rank-list" aria-live="polite"></ol>
       </div>
     </div>
     <footer class="site-footer">
       <p class="footer-brand"><span>Que</span><span class="plan">Plan.cl</span></p>
-      <p class="footer-note">Ranking guardado en este tótem, sin internet.</p>
+      <p id="footer-note" class="footer-note">Cargando ranking…</p>
       <button id="btn-clear" type="button">Vaciar ranking</button>
     </footer>
   </section>
@@ -99,6 +99,6 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script type="module" src="app.js?v=3"></script>
 </body>
 </html>

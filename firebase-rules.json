@@ -22,6 +22,16 @@
         ".read": true,
         ".write": true
       }
+    },
+    "memory-plan": {
+      "rankings": {
+        ".read": true,
+        ".indexOn": ["ms"],
+        "$entryId": {
+          ".write": "!data.exists() && newData.exists()",
+          ".validate": "newData.hasChildren(['name', 'ms', 'moves', 'timestamp']) && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 16 && newData.child('ms').isNumber() && newData.child('ms').val() > 0 && newData.child('ms').val() <= 7200000 && newData.child('ms').val() % 1 == 0 && newData.child('moves').isNumber() && newData.child('moves').val() >= 0 && newData.child('moves').val() <= 9999 && newData.child('moves').val() % 1 == 0 && newData.child('timestamp').isNumber() && newData.child('timestamp').val() > 0 && newData.child('timestamp').val() <= now + 300000 && newData.child('timestamp').val() % 1 == 0"
+        }
+      }
     }
   }
 }

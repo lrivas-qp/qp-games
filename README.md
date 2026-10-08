@@ -1,6 +1,6 @@
 # 🎮 Juegos QP
 
-Monorepo con la colección de juegos web de QP. Cada juego vive en su propia carpeta y es autónomo (HTML/CSS/JS). STOP!, Typing Maniac y Snake usan Firebase; MemoryPlan guarda el ranking en el equipo, sin internet. Una página central (`index.html`) actúa como portal de bienvenida con acceso a cada juego.
+Monorepo con la colección de juegos web de QP. Cada juego vive en su propia carpeta y es autónomo (HTML/CSS/JS). STOP!, Typing Maniac, Snake y la web de MemoryPlan usan Firebase. El APK offline de MemoryPlan guarda el ranking en el equipo, sin internet. Una página central (`index.html`) actúa como portal de bienvenida con acceso a cada juego.
 
 **🔗 En vivo:** https://lrivas-qp.github.io/qp-games/
 
@@ -11,7 +11,7 @@ Monorepo con la colección de juegos web de QP. Cada juego vive en su propia car
 | 🛑 **STOP!** | [`stop-game/`](./stop-game/) | El clásico Stop / Tutti Frutti multijugador en tiempo real. |
 | ⌨️ **Typing Maniac** | [`typing-maniac/`](./typing-maniac/) | Escribe las palabras que caen antes de que lleguen al fondo. |
 | 🐍 **Snake** | [`snake/`](./snake/) | La culebrita clásica: come, crece y no choques. Con ranking online. |
-| 🧠 **MemoryPlan** | [`memory-plan/`](./memory-plan/) | Memoria para tótem 1080×1920. Ranking local, sin internet. |
+| 🧠 **MemoryPlan** | [`memory-plan/`](./memory-plan/) | Memoria para tótem 1080×1920. Ranking compartido en la web; local en el APK. |
 
 ## Estructura
 
@@ -23,7 +23,8 @@ qp-games/
 ├── stop-game/              # Juego STOP! (autónomo)
 ├── typing-maniac/          # Juego Typing Maniac (autónomo)
 ├── snake/                  # Juego Snake (autónomo)
-└── memory-plan/            # Juego MemoryPlan (autónomo, ranking local)
+├── memory-plan/            # Juego MemoryPlan (web con ranking compartido)
+└── memory-plan-android/    # APK offline, ranking solo en el equipo
 ```
 
 ## Backend (Firebase)

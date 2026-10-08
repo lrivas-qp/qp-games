@@ -1,0 +1,88 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "cl.queplan.memoryplan"
+    compileSdk 35
+    buildToolsVersion "35.0.0"
+
+    defaultConfig {
+        applicationId "cl.queplan.memoryplan"
+        minSdk 26
+        targetSdk 35
+        versionCode 2
+        versionName "1.1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+    }
+}
+
+configurations.configureEach {
+    exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jdk7"
+    exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jdk8"
+}
+
+dependencies {
+    implementation "androidx.activity:activity:1.9.3"
+    implementation "androidx.core:core:1.15.0"
+    implementation "androidx.webkit:webkit:1.12.1"
+}
+
+def webRoot = rootProject.file("../memory-plan")
+def assetsDir = layout.projectDirectory.dir("src/main/assets")
+
+tasks.register("syncWebAssets", Sync) {
+    group = "build"
+    description = "Copia memory-plan a los assets locales del APK, sin README ni Firebase."
+    from(webRoot) {
+        exclude "README.md"
+        exclude "**/*.md"
+        exclude "**/.DS_Store"
+        exclude "**/Thumbs.db"
+        exclude "firebase-config.js"
+        exclude "test-*.mjs"
+        exclude "**/*.test.mjs"
+        exclude "node_modules/**"
+    }
+    into(assetsDir)
+    doLast {
+        def keep = assetsDir.file(".gitkeep").asFile
+        keep.parentFile.mkdirs()
+        if (!keep.exists()) keep.text = ""
+    }
+}
+
+afterEvaluate {
+    tasks.named("preBuild").configure {
+        dependsOn(tasks.named("syncWebAssets"))
+    }
+    tasks.matching { task ->
+        task.name ==~ /merge.*Assets/
+    }.configureEach {
+        dependsOn(tasks.named("syncWebAssets"))
+    }
+}
+
+tasks.register("copyOfflineApk", Copy) {
+    group = "distribution"
+    description = "Copia el APK debug a dist/MemoryPlan-offline.apk."
+    dependsOn(tasks.named("assembleDebug"))
+    from(layout.buildDirectory.file("outputs/apk/debug/app-debug.apk"))
+    into(rootProject.file("../dist"))
+    rename { "MemoryPlan-offline.apk" }
+}

@@ -27,3 +27,6 @@ IDEAS-JUEGOS.md
 
 # Referencias locales de la maqueta
 .figma-ref/
+
+# APK de kiosco: artefacto local, no se versiona
+/dist/*.apk
