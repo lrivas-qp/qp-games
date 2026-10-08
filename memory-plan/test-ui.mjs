@@ -170,9 +170,40 @@ try {
   await broken.waitForSelector(".rank-status.is-error");
   const brokenText = await broken.locator("#rank-list").innerText();
   assert.match(brokenText, /No se pudo cargar el ranking compartido/);
+  assert.match(brokenText, /conexión/);
+  assert.match(await broken.locator("#live-label").innerText(), /SIN RED/);
   assert.doesNotMatch(brokenText, /LOCALNO/);
   assert.match(await broken.locator("#footer-note").innerText(), /compartido/i);
   await broken.close();
+
+  const denied = await browser.newPage({ viewport: { width: 1080, height: 1920 } });
+  await denied.route("**/firebase-config.js*", (route) => route.fulfill({
+    status: 200,
+    contentType: "text/javascript; charset=utf-8",
+    body: `
+      export async function saveScore() {
+        var err = new Error("PERMISSION_DENIED: Permission denied");
+        err.code = "PERMISSION_DENIED";
+        throw err;
+      }
+      export function watchTop(callback) {
+        var err = new Error("Permission denied");
+        err.code = "PERMISSION_DENIED";
+        callback(null, err);
+        return function () {};
+      }
+    `
+  }));
+  await denied.goto("http://127.0.0.1:" + port + "/index.html");
+  await denied.waitForSelector(".rank-status.is-error");
+  assert.match(await denied.locator("#live-label").innerText(), /SIN REGLAS/);
+  assert.doesNotMatch(await denied.locator("#live-label").innerText(), /SIN RED/);
+  assert.match(await denied.locator("#rank-list").innerText(), /Faltan las reglas/);
+  await winGame(denied);
+  await typeName(denied, "ANA");
+  await denied.locator("#btn-save").click();
+  await denied.waitForFunction(() => /rechazó el puntaje/i.test(document.getElementById("modal-note").textContent));
+  await denied.close();
 
   const offline = await browser.newPage({ viewport: { width: 1080, height: 1920 } });
   const offlineHits = [];

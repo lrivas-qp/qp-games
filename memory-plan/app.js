@@ -77,6 +77,32 @@ var highlightId = "";
 var lastOrder = "";
 var rankRows = [];
 var rankState = "ready";
+var rankFault = "";
+
+function faultOf(err) {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return "offline";
+  var blob = [err && err.code, err && err.message].join(" ").toLowerCase();
+  if (
+    blob.indexOf("permission_denied") !== -1 ||
+    blob.indexOf("permission denied") !== -1 ||
+    blob.indexOf("index not defined") !== -1
+  ) return "rules";
+  if (
+    blob.indexOf("timeout") !== -1 ||
+    blob.indexOf("network") !== -1 ||
+    blob.indexOf("failed to fetch") !== -1 ||
+    blob.indexOf("unavailable") !== -1 ||
+    blob.indexOf("disconnect") !== -1 ||
+    blob.indexOf("load failed") !== -1 ||
+    blob.indexOf("dynamically imported module") !== -1
+  ) return "offline";
+  return "other";
+}
+
+function noteRankFault(err) {
+  rankFault = faultOf(err);
+  rankState = rankRows.length ? "stale" : "error";
+}
 
 function pad(n) {
   return (n < 10 ? "0" : "") + n;
@@ -138,11 +164,30 @@ function paintLive() {
     return;
   }
   if (rankState === "error" || rankState === "stale") {
-    liveLabel.textContent = "SIN RED";
+    liveLabel.textContent = rankFault === "rules" ? "SIN REGLAS" : (rankFault === "offline" ? "SIN RED" : "ERROR");
     livePill.classList.add("is-error");
     return;
   }
   liveLabel.textContent = "EN VIVO";
+}
+
+function loadFaultText() {
+  if (rankFault === "rules") return "Firebase rechazó el acceso. Faltan las reglas del nodo memory-plan/rankings.";
+  if (rankFault === "offline") return "No se pudo cargar el ranking compartido. Revisa la conexión.";
+  return "No se pudo cargar el ranking compartido.";
+}
+
+function staleFaultText() {
+  if (rankFault === "rules") return "Firebase rechazó el acceso. Faltan las reglas del nodo memory-plan/rankings.";
+  if (rankFault === "offline") return "No se pudo actualizar el ranking compartido. Revisa la conexión.";
+  return "No se pudo actualizar el ranking compartido.";
+}
+
+function publishFaultText(err) {
+  var fault = faultOf(err);
+  if (fault === "rules") return "Firebase rechazó el puntaje. Faltan las reglas del nodo memory-plan/rankings.";
+  if (fault === "offline") return "No se pudo publicar el puntaje. Revisa la conexión e inténtalo de nuevo.";
+  return "No se pudo publicar el puntaje.";
 }
 
 function appendStatus(text, isError) {
@@ -160,7 +205,7 @@ function renderRanks() {
     return;
   }
   if ((rankState === "error" || rankState === "stale") && !rankRows.length) {
-    appendStatus("No se pudo cargar el ranking compartido. Revisa la conexión.", true);
+    appendStatus(loadFaultText(), true);
     return;
   }
   if (!rankRows.length) {
@@ -178,7 +223,7 @@ function renderRanks() {
     return;
   }
   if (rankState === "stale") {
-    appendStatus("No se pudo actualizar el ranking compartido.", true);
+    appendStatus(staleFaultText(), true);
   }
   rankRows.forEach(function (row, index) {
     var li = document.createElement("li");
@@ -225,7 +270,9 @@ function refreshSavedNote() {
     return;
   }
   if (rankState === "error" || rankState === "stale") {
-    modalNote.textContent = "El puntaje se envió, pero el ranking compartido no confirmó la posición.";
+    modalNote.textContent = rankFault === "rules"
+      ? "Firebase rechazó la lectura del ranking. Faltan las reglas del nodo memory-plan/rankings."
+      : "El puntaje se envió, pero el ranking compartido no confirmó la posición.";
     return;
   }
   modalNote.textContent = "Puntaje publicado. Actualizando el ranking…";
@@ -486,10 +533,11 @@ function newGame() {
 
 function onRankSnapshot(rows, err) {
   if (err) {
-    rankState = rankRows.length ? "stale" : "error";
+    noteRankFault(err);
   } else {
     rankRows = rows || [];
     rankState = "ready";
+    rankFault = "";
   }
   renderRanks();
   refreshSavedNote();
@@ -508,7 +556,7 @@ function beginSharedImport() {
   }).catch(function (err) {
     sharedFailed = true;
     if (!firebaseApi) {
-      rankState = rankRows.length ? "stale" : "error";
+      noteRankFault(err);
       renderRanks();
     }
     throw err;
@@ -572,19 +620,21 @@ function saveScore() {
       placeTimer = setTimeout(function () {
         if (!saved || !modalOpen || placeOf(highlightId) !== -1) return;
         if (rankState === "error" || rankState === "stale") {
-          modalNote.textContent = "El puntaje se envió, pero el ranking compartido no confirmó la posición.";
+          modalNote.textContent = rankFault === "rules"
+            ? "Firebase rechazó la lectura del ranking. Faltan las reglas del nodo memory-plan/rankings."
+            : "El puntaje se envió, pero el ranking compartido no confirmó la posición.";
           return;
         }
         modalNote.textContent = "Este tiempo no entra en los 6 más rápidos.";
       }, 2500);
     }
     bumpIdle();
-  }).catch(function () {
+  }).catch(function (err) {
     if (gen !== gameGen) return;
     saving = false;
     paintName();
     modalNote.textContent = usingShared
-      ? "No se pudo publicar el puntaje. Revisa la conexión e inténtalo de nuevo."
+      ? publishFaultText(err)
       : "No se pudo guardar el puntaje en este equipo.";
   });
 }
