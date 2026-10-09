@@ -128,11 +128,6 @@ function paintPairs() {
   pairsEl.textContent = matched + " DE 8 PAREJAS";
 }
 
-function initials(name) {
-  var word = String(name || "").trim().split(/\s+/)[0] || "";
-  return word.slice(0, 2).toLocaleUpperCase("es");
-}
-
 function placeClass(index) {
   if (index === 0) return " is-gold";
   if (index === 1) return " is-silver";
@@ -231,9 +226,6 @@ function renderRanks() {
     var place = document.createElement("span");
     place.className = "rank-place" + placeClass(index);
     place.textContent = pad(index + 1);
-    var avatar = document.createElement("span");
-    avatar.className = "avatar";
-    avatar.textContent = initials(row.name);
     var name = document.createElement("span");
     name.className = "rank-name";
     name.textContent = row.name;
@@ -241,7 +233,6 @@ function renderRanks() {
     time.className = "rank-time";
     time.textContent = clockLabel(row.ms);
     li.appendChild(place);
-    li.appendChild(avatar);
     li.appendChild(name);
     li.appendChild(time);
     rankList.appendChild(li);

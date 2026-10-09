@@ -505,7 +505,7 @@ p, h1, h2 { margin: 0; }
 
 .rank-row {
   display: grid;
-  grid-template-columns: 64px 56px minmax(0, 1fr) auto;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
   align-items: center;
   gap: 16px;
   min-height: 92px;
@@ -527,19 +527,6 @@ p, h1, h2 { margin: 0; }
 .rank-place.is-gold { color: var(--gold); }
 .rank-place.is-silver { color: var(--silver); }
 .rank-place.is-bronze { color: var(--bronze); }
-
-.avatar {
-  width: 52px;
-  height: 52px;
-  display: grid;
-  place-items: center;
-  border-radius: 16px;
-  background: #d7f1fb;
-  color: var(--navy);
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
 
 .rank-name {
   overflow: hidden;
