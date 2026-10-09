@@ -93,7 +93,6 @@ p, h1, h2 { margin: 0; }
   width: 46px;
   width: clamp(32px, 4svh, 46px);
   height: auto;
-  aspect-ratio: 1;
   flex-shrink: 0;
 }
 

@@ -12,7 +12,7 @@ var ICONS = [
   { id: "corazon", src: "assets/corazon.svg", label: "Corazón" },
   { id: "cohete", src: "assets/cohete.svg", label: "Cohete" },
   { id: "dedos", src: "assets/dedos.svg", label: "Dedos" },
-  { id: "lupa", src: "assets/lupa.svg", label: "Lupa" },
+  { id: "lupa", src: "assets/lupa.png", label: "Lupa" },
   { id: "cruz", src: "assets/cruz.svg", label: "Cruz" },
   { id: "rayo", src: "assets/rayo.svg", label: "Rayo" },
   { id: "hueso", src: "assets/hueso.svg", label: "Hueso" }
@@ -470,7 +470,7 @@ function renderBoard() {
     var back = document.createElement("span");
     back.className = "face back";
     var backImg = document.createElement("img");
-    backImg.src = "assets/lupa-blanca.svg";
+    backImg.src = "assets/lupa-blanca.png";
     backImg.alt = "";
     backImg.draggable = false;
     back.appendChild(backImg);
